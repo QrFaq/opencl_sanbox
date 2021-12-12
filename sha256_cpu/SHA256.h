@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <iostream>
+//#include <iostream>
 #include <cstring>
 
 class SHA256

@@ -29,7 +29,9 @@ void SHA256::get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length)
     // Hasing
     ////
     std::memcpy(&(SHA256::h), &(SHA256::h0), 32); // rst
+
     size_t remain_sz_msg = msg_length;
+
     uint8_t* msg_block = new uint8_t[64]; // == 512-bits
     for (size_t i = 0; i < SHA256::blocks_number; i++)
     {
@@ -42,7 +44,7 @@ void SHA256::get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length)
         remain_sz_msg -= 64;
     }
 
-    //store final result
+    // store final result
     for (size_t i = 0; i < 8; i++)
     {
         uint32_t* hash32 = (uint32_t*) SHA256::hash;
@@ -94,7 +96,7 @@ void SHA256::process_block(uint8_t* block)
                 w[t - 7] + 
                 SHA256::sigma_from_zero(w[t - 15]) + 
                 w[t - 16];
-    }
+    }//+
 
     ////
     // Hashing
@@ -106,11 +108,11 @@ void SHA256::process_block(uint8_t* block)
     for (size_t t = 0; t < 64; t++)
     {
         uint32_t T1 =   abcdefgh[7] +
-                        SHA256::sigma_from_one(abcdefgh[4]) +
+                        SHA256::sum_from_one(abcdefgh[4]) +
                         SHA256::Ch(abcdefgh[4], abcdefgh[5], abcdefgh[6]) +
-                        SHA256::k[t] + w[t];
-        uint32_t T2 =   SHA256::sigma_from_zero(abcdefgh[0]) +
-                        SHA256::Maj(abcdefgh[0], abcdefgh[1], abcdefgh[2]);
+                        SHA256::k[t] + w[t];//+
+        uint32_t T2 =   SHA256::sum_from_zero(abcdefgh[0]) +
+                        SHA256::Maj(abcdefgh[0], abcdefgh[1], abcdefgh[2]);//+
         
         abcdefgh[7] = abcdefgh[6];
         abcdefgh[6] = abcdefgh[5];
@@ -119,23 +121,12 @@ void SHA256::process_block(uint8_t* block)
         abcdefgh[3] = abcdefgh[2];
         abcdefgh[2] = abcdefgh[1];
         abcdefgh[1] = abcdefgh[0];
-        abcdefgh[0] = T1 + T2;
+        abcdefgh[0] = T1 + T2;//+
     }
 
     // compute i-th intermidiate value H(i)
     for (size_t i = 0; i < 8; i++)
         SHA256::h[i] += SHA256::abcdefgh[i];
-
-    
-    // if (SHA256::remainig_blocks_n == 0)
-    // {
-    //     //store final result
-	// 	for (size_t i = 0; i < 8; i++)
-	// 	{
-    //         uint32_t* hash32 = (uint32_t*) SHA256::hash;
-    //         hash32[i] = __builtin_bswap32(SHA256::h[i]);
-	// 	}
-    // }
 }
 		
 
