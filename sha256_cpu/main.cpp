@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     
     std::cout << boost::format("> Input message: `%1%`\nhash:\t") % message;
     for (int i = 0; i < nbytes; i++)
-        std::cout << +hash[i] << " ";
+        std::cout << boost::format("%02x") % static_cast<int>(hash[i]);// << " ";
     std::cout << std::endl;
 
     // free memory
