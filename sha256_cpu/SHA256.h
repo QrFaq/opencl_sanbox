@@ -14,5 +14,5 @@ public://TODO: private
     uint32_t sigma_from_one(uint32_t x);
 
     uint32_t rotr(uint32_t x, uint32_t n);
-    uint32_t shr(uint32_t x);
+    uint32_t shr(uint32_t x, uint32_t n);
 };
