@@ -35,7 +35,7 @@ void SHA256::get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length)
     {
         std::memset(msg_block, 0, 64);
         size_t cp_size = (remain_sz_msg  < 64) ? remain_sz_msg : 64;  // last iteration check
-        std::memcpy(msg_block, 0, cp_size);
+        std::memcpy(msg_block, msg, cp_size);
         
         SHA256::remainig_blocks_n--;
         SHA256::process_block(msg_block);
