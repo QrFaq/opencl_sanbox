@@ -30,8 +30,7 @@ uint32_t SHA256::sigma_from_one(uint32_t x)
 }
 
 uint32_t SHA256::rotr(uint32_t x, uint32_t n) {
-    std::cout << x << "," << n << "\n";
-    return (x << n) | (x >> (32 - n));   //w = 32
+    return (x >> n) | (x << (32 - n));   //w = 32
 }
 
 uint32_t SHA256::shr(uint32_t x, uint32_t n)
