@@ -16,7 +16,7 @@ void SHA256::get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length)
 
     // padding calculation to 512-bits size
     // Message structure: [message [bytes], 1, padding bits, 64-bit as message size]
-    size_t bits = (msg_length * 8 ) + 1 + 64;
+    size_t bits = (msg_length * 8 ) + 1 + 64;//TODO: may be here a problem
     size_t padding_size_bits = (512 - (bits % 512)) % 512;
     bits += padding_size_bits;
 
@@ -30,15 +30,18 @@ void SHA256::get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length)
     ////
     std::memcpy(&(SHA256::h), &(SHA256::h0), 32); // rst
 
-    size_t remain_sz_msg = msg_length;
+    int remain_sz_msg = msg_length;
 
     uint8_t* msg_block = new uint8_t[64]; // == 512-bits
     for (size_t i = 0; i < SHA256::blocks_number; i++)
-    {
-        std::memset(msg_block, 0, 64);
-        size_t cp_size = (remain_sz_msg  < 64) ? remain_sz_msg : 64;  // last iteration check
-        std::memcpy(msg_block, msg, cp_size);
-        
+    {        
+        if (remain_sz_msg > 0)
+        {
+            std::memset(msg_block, 0, 64);
+			size_t cp_size = (remain_sz_msg  < 64) ? remain_sz_msg : 64;  // last iteration check
+			std::memcpy(msg_block, msg, cp_size);
+        }
+
         SHA256::remainig_blocks_n--;
         SHA256::process_block(msg_block);
         remain_sz_msg -= 64;
