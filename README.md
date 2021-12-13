@@ -24,6 +24,8 @@ sys	0m0,082s
 ### Hash results were compared with Python `haslib`
 ```
 import hashhlib
->>> hashlib.sha256("1234567891234567891234567891234567891234567891234567891".encode('utf-8')).hexdigest() == "dfe655f881efc69168756ce900408823ba18906d30dd0b41ff42edce879cec03"
+>>> input_str = "1234567891234567891234567891234567891234567891234567891"
+>>> hash_to_check = "dfe655f881efc69168756ce900408823ba18906d30dd0b41ff42edce879cec03"
+>>> hashlib.sha256(input_str.encode('utf-8')).hexdigest() == hash_to_check
 True
 ```
