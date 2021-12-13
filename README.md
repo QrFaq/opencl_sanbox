@@ -21,3 +21,9 @@ real	0m0,686s
 user	0m0,604s
 sys	0m0,082s
 ```
+### Hash results were compared with Python `haslib`
+```
+import hashhlib
+>>> hashlib.sha256("1234567891234567891234567891234567891234567891234567891".encode('utf-8')).hexdigest() == "dfe655f881efc69168756ce900408823ba18906d30dd0b41ff42edce879cec03"
+True
+```
