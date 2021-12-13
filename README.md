@@ -21,7 +21,7 @@ real	0m0,686s
 user	0m0,604s
 sys	0m0,082s
 ```
-### Hash results were compared with Python `haslib`
+### Hash results were compared with Python `hashlib`
 ```
 import hashhlib
 >>> input_str = "1234567891234567891234567891234567891234567891234567891"
