@@ -1,5 +1,6 @@
 # opencl_sanbox
 
+[Algorithm documentation link](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf)
 
 ## how to launch
 * build script makes automatic launch
