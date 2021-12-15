@@ -213,7 +213,6 @@ static void sha256_process2 (const unsigned int *W, unsigned int *digest)
 
   ROUND_EXPAND();
   ROUND_STEP(16);
-  
 
   ROUND_EXPAND();
   ROUND_STEP(32);
@@ -353,7 +352,7 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     outbuffer[idx].buffer[5]=hash[5];
     outbuffer[idx].buffer[6]=hash[6];
     outbuffer[idx].buffer[7]=hash[7];
-
+    
     // for (int i=0; i < 8; i++)
     //   printf("outbuf[idx].buffer[i]==%08x\n", hash[i]);
 }
