@@ -212,7 +212,7 @@ static void sha256_process2 (const unsigned int *W, unsigned int *digest)
   ROUND_STEP (0);
 
   ROUND_EXPAND();
-  
+  ROUND_STEP(16);  
 
   ROUND_EXPAND();
   ROUND_STEP(32);
