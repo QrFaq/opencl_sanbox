@@ -212,6 +212,7 @@ static void sha256_process2 (const unsigned int *W, unsigned int *digest)
   ROUND_STEP (0);
 
   ROUND_EXPAND();
+  ROUND_STEP(16);
   
 
   ROUND_EXPAND();
@@ -239,8 +240,8 @@ static void sha256(__global const unsigned int *pass, int pass_len, unsigned int
     unsigned int* p = hash;
 
     unsigned int W[0x10]={0};
-    int loops=plen;
-    int curloop=0;
+    int loops = plen;
+    int curloop = 0;
     unsigned int State[8]={0};
     State[0] = 0x6a09e667;//+
     State[1] = 0xbb67ae85;//+
@@ -340,8 +341,8 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     unsigned int idx = get_global_id(0);
     unsigned int hash[32/4]={0};
 
-    for (int i=0; i < 32/4; i++)
-      printf("inbuffer[idx].buffer[i]=%d\n", inbuffer[idx].buffer[i]);
+    // for (int i=0; i < 32/4; i++)
+    //   printf("inbuffer[idx].buffer[i]=%08x\n", inbuffer[idx].buffer[i]);
 
     sha256(inbuffer[idx].buffer, inbuffer[idx].length, hash);
     outbuffer[idx].buffer[0]=hash[0];
@@ -352,4 +353,7 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     outbuffer[idx].buffer[5]=hash[5];
     outbuffer[idx].buffer[6]=hash[6];
     outbuffer[idx].buffer[7]=hash[7];
+
+    // for (int i=0; i < 8; i++)
+    //   printf("outbuf[idx].buffer[i]==%08x\n", hash[i]);
 }

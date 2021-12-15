@@ -197,18 +197,18 @@ int main(int argc, char* argv[])
     s_inbuf h_in_buf[n_hashes];// = h_inbuf[];// = {1}
     s_outbuf h_out_buf[n_hashes];
 
-    // init host data
-    LogInfo("> N_BUFFER_sz=%d\n", N_BUFFER_sz);
+    // init host data, example
     for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
     {
-        LogInfo("> Input string:");
-        h_in_buf[ind_hash].length = n_hashes;
+        LogInfo("> Input string (hash %i):`", ind_hash);
+        h_in_buf[ind_hash].length = 32;// N bytes
         for (size_t ind = 0; ind < N_BUFFER_sz; ind++)
         {
-            h_in_buf[ind_hash].buffer[ind] = 0x00000000;
+            h_in_buf[ind_hash].buffer[ind] = 0x61616161;//write 'aaaa'
             //h_out_buf[n_hashes].buffer[ind] = 0xffffffff;
+            LogInfo("%c", h_in_buf[ind_hash].buffer[ind]);
         }
-        LogInfo("\n");
+        LogInfo("`\n");
     }
 
 
@@ -312,24 +312,32 @@ int main(int argc, char* argv[])
     {
         struct timeval runtime;
         timersub(&performanceCountNDRangeStop, &performanceCountNDRangeStart, &runtime);
-        LogInfo("NDRange performance counter time %f ms.\n", (runtime.tv_sec * 1000.f + runtime.tv_usec / 1000.f));
+        LogInfo("> NDRange performance counter time:\t%f [ms]\n", (runtime.tv_sec * 1000.f + runtime.tv_usec / 1000.f));
     }
 
 
     for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
     {
-        LogInfo("> Hash string:\n");
+        LogInfo("> Hash string:`");
         h_in_buf[ind_hash].length = n_hashes;
         for (int ind = 0; ind < N_BUFFER_sz; ind++)
         {   
-            unsigned int little_end =
+            unsigned int little_end = //h_out_buf[ind_hash].buffer[ind];
                 ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
                 ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
                 ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |
                 ((h_out_buf[ind_hash].buffer[ind]<<24)&0xff000000);
-            LogInfo("%2.x", h_out_buf[ind_hash].buffer[ind]);
+            unsigned char bytes[4] = {
+                (little_end >> 24) & 0xFF,
+                (little_end >> 16) & 0xFF,
+                (little_end >> 8) & 0xFF,
+                little_end & 0xFF
+            };
+            //sprintf(buffer,"%02X ",onebyte);
+            // LogInfo("%02x%02x%02x%02x", bytes[0],bytes[1],bytes[2],bytes[3]);//works
+            LogInfo("%0.8x", little_end);
         }
-        LogInfo("\n");
+        LogInfo("`\n");
     }
     LogError("> End of calculations\n");
 
