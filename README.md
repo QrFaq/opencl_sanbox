@@ -29,3 +29,24 @@ import hashhlib
 >>> hashlib.sha256(input_str.encode('utf-8')).hexdigest() == hash_to_check
 True
 ```
+
+## GPU result with a small input string
+```
+Selected device type is CL_DEVICE_TYPE_GPU
+Number of available platforms: 3
+Selected platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+clGetDeviceIDs() returned CL_DEVICE_NOT_FOUND for platform Intel(R) CPU Runtime for OpenCL(TM) Applications.
+Selected platform: Intel(R) OpenCL HD Graphics
+> Input string (hash 0):`aaaaaaaa`
+> NDRange performance counter time:	1.728000 [ms]
+> Hash string:`3ba3f5f43b92602683c19aee62a20342b084dd5971ddd33808d81a328879a547`
+> End of calculations
+```
+### Hash results were compared with Python `hashlib`
+```
+import hashhlib
+>>> input_str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+>>> hash_to_check = "3ba3f5f43b92602683c19aee62a20342b084dd5971ddd33808d81a328879a547"
+>>> hashlib.sha256(input_str.encode()).hexdigest() == hash_to_check
+True
+```
