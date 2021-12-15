@@ -1,16 +1,5 @@
 #include "CL/cl.h"
 
-
-typedef struct s_inbuf{
-    cl_uint length;
-    // unsigned int length;
-    cl_mem buffer;//unsigned int buffer[32/4];
-} t_inbuf;
-
-typedef struct s_outbuf{
-    cl_mem buffer;//unsigned int buffer[32/4];
-} t_outbuf;
-
 struct ocl_args_d_t
 {
     ocl_args_d_t();
@@ -27,10 +16,6 @@ struct ocl_args_d_t
     float            compilerVersion;   // hold the device OpenCL C version (default. 1.2)
     
     // Objects that are specific for algorithm implemented in this sample
-    cl_mem           srcA;              // hold first source buffer
-    cl_mem           srcB;              // hold second source buffer
-    cl_mem           dstMem;            // hold destination buffer
-
-    t_inbuf inbuf;
-    t_outbuf outbuf;
+    cl_mem in_buf;
+    cl_mem out_buf;
 };

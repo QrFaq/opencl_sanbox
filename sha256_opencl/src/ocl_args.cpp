@@ -1,16 +1,4 @@
 #include "../3rd_parties/utils.h"
-//#include "../include/ocl_args.h"
-
-/* Convenient container for all OpenCL specific objects used in the sample
- *
- * It consists of two parts:
- *   - regular OpenCL objects which are used in almost each normal OpenCL applications
- *   - several OpenCL objects that are specific for this particular sample
- *
- * You collect all these objects in one structure for utility purposes
- * only, there is no OpenCL specific here: just to avoid global variables
- * and make passing all these arguments in functions easier.
- */
 
 ocl_args_d_t::ocl_args_d_t():
         context(NULL),
@@ -21,23 +9,11 @@ ocl_args_d_t::ocl_args_d_t():
         platformVersion(OPENCL_VERSION_1_2),
         deviceVersion(OPENCL_VERSION_1_2),
         compilerVersion(OPENCL_VERSION_1_2),
-        srcA(NULL),
-        srcB(NULL),
-        dstMem(NULL)
+        in_buf(NULL),
+        out_buf(NULL)
 {
 }
 
-/*
- * destructor - called only once
- * Release all OpenCL objects
- * This is a regular sequence of calls to deallocate all created OpenCL resources in bootstrapOpenCL.
- *
- * You may want to call these deallocation procedures in the middle of your application execution
- * (not at the end) if you don't further need OpenCL runtime.
- * You may want to do that in order to free some memory, for example,
- * or recreate OpenCL objects with different parameters.
- *
- */
 ocl_args_d_t::~ocl_args_d_t()
 {
     cl_int err = CL_SUCCESS;
@@ -58,25 +34,17 @@ ocl_args_d_t::~ocl_args_d_t()
             LogError("Error: clReleaseProgram returned '%s'.\n", TranslateOpenCLError(err));
         }
     }
-    if (srcA)
+    if (in_buf)
     {
-        err = clReleaseMemObject(srcA);
+        err = clReleaseMemObject(in_buf);
         if (CL_SUCCESS != err)
         {
             LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
         }
     }
-    if (srcB)
+    if (out_buf)
     {
-        err = clReleaseMemObject(srcB);
-        if (CL_SUCCESS != err)
-        {
-            LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
-        }
-    }
-    if (dstMem)
-    {
-        err = clReleaseMemObject(dstMem);
+        err = clReleaseMemObject(out_buf);
         if (CL_SUCCESS != err)
         {
             LogError("Error: clReleaseMemObject returned '%s'.\n", TranslateOpenCLError(err));
@@ -106,10 +74,4 @@ ocl_args_d_t::~ocl_args_d_t()
             LogError("Error: clReleaseContext returned '%s'.\n", TranslateOpenCLError(err));
         }
     }
-
-    /*
-     * Note there is no procedure to deallocate platform 
-     * because it was not created at the startup,
-     * but just queried from OpenCL runtime.
-     */
 }

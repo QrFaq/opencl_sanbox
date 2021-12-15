@@ -2,9 +2,8 @@
     Template of the main wrapper was taken
     from the public Intel snippest example
     `ocl-tools-walkthrough` TemplateGFX example.
-
-    SHA256 test snippet implementation for build testing purposes was taken from:
-        https://github.com/bkerler/MR/blob/master/MobileRevelator/python/Library/sha256.cl
+    
+    Everything is used for non-commercial purposes.
 */
 
 #include <stdio.h>
@@ -13,27 +12,99 @@
 #include <vector>
 #include <string>
 
-//#include "CL/cl.h"
 #include "../3rd_parties/utils.h"
-//#include "../include/ocl_args.h"
-
-//for perf. counters
 #include <sys/time.h>
 
+#define N_BUFFER_sz 32/4
 
-/*
- * This function picks/creates necessary OpenCL objects which are needed.
- * The objects are:
- * OpenCL platform, device, context, and command queue.
- *
- * All these steps are needed to be performed once in a regular OpenCL application.
- * This happens before actual compute kernels calls are performed.
- *
- * For convenience, in this application you store all those basic OpenCL objects in structure ocl_args_d_t,
- * so this function populates fields of this structure, which is passed as parameter ocl.
- * Please, consider reviewing the fields before going further.
- * The structure definition is right in the beginning of this file.
- */
+typedef struct s_inbuf {
+	unsigned int length;
+	unsigned int buffer[N_BUFFER_sz];
+};
+
+typedef struct s_outbuf {
+	unsigned int buffer[N_BUFFER_sz];
+};
+
+/* Create and build OpenCL program from its source code */
+int CreateAndBuildProgram(ocl_args_d_t *ocl, const char * kernel_fpath)
+{
+    cl_int err = CL_SUCCESS;
+
+    // Upload the OpenCL C source code from the input file to source
+    char* source = NULL;
+    size_t src_size = 0;
+    err = ReadSourceFromFile(kernel_fpath, &source, &src_size);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: ReadSourceFromFile returned %s.\n", TranslateOpenCLError(err));
+        goto Finish;
+    }
+
+    // create OpenCL program object
+    ocl->program = clCreateProgramWithSource(ocl->context, 1, (const char**)&source, &src_size, &err);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clCreateProgramWithSource returned %s.\n", TranslateOpenCLError(err));
+        goto Finish;
+    }
+
+    // Build the program
+    err = clBuildProgram(ocl->program, 1, &ocl->device, "", NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
+
+        // In case of error print the build log to the standard output
+        // First check the size of the log
+        // Then allocate the memory and obtain the log from the program
+        if (err == CL_BUILD_PROGRAM_FAILURE)
+        {
+            size_t log_size = 0;
+            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+            std::vector<char> build_log(log_size);
+            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
+
+            LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
+        }
+    }
+
+Finish:
+    if (source)
+    {
+        delete[] source;
+        source = NULL;
+    }
+
+    return err;
+}
+
+/* Execute the kernel */
+cl_uint ExecuteAddKernel(ocl_args_d_t *ocl, const size_t n_hashes)
+{
+    cl_int err = CL_SUCCESS;
+
+    // execute kernel
+    err = clEnqueueNDRangeKernel(ocl->commandQueue, ocl->kernel, 1, NULL, &n_hashes, NULL, 0, NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: Failed to run kernel, return %s\n", TranslateOpenCLError(err));
+        return err;
+    }
+
+    // Wait until the queued kernel is completed by the device
+    err = clFinish(ocl->commandQueue);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clFinish return %s\n", TranslateOpenCLError(err));
+        return err;
+    }
+
+    return CL_SUCCESS;
+}
+
+/* OpenCL platform, device, context, and command queue */
 int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType, std::string& platformStr)
 {
     // The following variable stores return codes for all OpenCL calls.
@@ -42,7 +113,6 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType, std::string& platf
     // Query for all available OpenCL platforms on the system
     // Here you enumerate all platforms and pick one which name has preferredPlatform as a sub-string
     cl_platform_id platformId = FindOpenCLPlatform("Intel", deviceType, platformStr);
-
     if (NULL == platformId)
     {
         LogError("Error: Failed to find OpenCL platform.\n");
@@ -105,314 +175,97 @@ int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType, std::string& platf
     return CL_SUCCESS;
 }
 
-
-/* 
- * Create and build OpenCL program from its source code
- */
-int CreateAndBuildProgram(ocl_args_d_t *ocl, const char * kernel_fpath)//"TemplateGFX.cl"
-{
-    cl_int err = CL_SUCCESS;
-
-    // Upload the OpenCL C source code from the input file to source
-    // The size of the C program is returned in sourceSize
-    char* source = NULL;
-    size_t src_size = 0;
-    err = ReadSourceFromFile(kernel_fpath, &source, &src_size);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: ReadSourceFromFile returned %s.\n", TranslateOpenCLError(err));
-        goto Finish;
-    }
-
-    // And now after you obtained a regular C string call clCreateProgramWithSource to create OpenCL program object.
-    ocl->program = clCreateProgramWithSource(ocl->context, 1, (const char**)&source, &src_size, &err);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateProgramWithSource returned %s.\n", TranslateOpenCLError(err));
-        goto Finish;
-    }
-
-    // Build the program
-    // During creation a program is not built. You need to explicitly call build function.
-    // Here you just use create-build sequence,
-    // but there are also other possibilities when program consist of several parts,
-    // some of which are libraries, and you may want to consider using clCompileProgram and clLinkProgram as
-    // alternatives.
-    err = clBuildProgram(ocl->program, 1, &ocl->device, "", NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
-
-        // In case of error print the build log to the standard output
-        // First check the size of the log
-        // Then allocate the memory and obtain the log from the program
-        if (err == CL_BUILD_PROGRAM_FAILURE)
-        {
-            size_t log_size = 0;
-            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-
-            std::vector<char> build_log(log_size);
-            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
-
-            LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
-        }
-    }
-
-Finish:
-    if (source)
-    {
-        delete[] source;
-        source = NULL;
-    }
-
-    return err;
-}
-
-
-/*
- * Create OpenCL buffers from host memory
- * These buffers will be used later by the OpenCL kernel
- */
-int CreateBufferArguments(ocl_args_d_t *ocl, cl_int* inputA, cl_int* inputB, cl_int* outputC, cl_uint arrayWidth, cl_uint arrayHeight)
-{
-    cl_int err = CL_SUCCESS;
-
-    cl_image_format format;
-    cl_image_desc desc;
-
-    // Define the image data-type and order -
-    // one channel (R) with unit values
-    format.image_channel_data_type = CL_UNSIGNED_INT32;
-    format.image_channel_order     = CL_R;
-
-    // Define the image properties (descriptor)
-    desc.image_type        = CL_MEM_OBJECT_IMAGE2D;
-    desc.image_width       = arrayWidth;
-    desc.image_height      = arrayHeight;
-    desc.image_depth       = 0;
-    desc.image_array_size  = 1;
-    desc.image_row_pitch   = 0;
-    desc.image_slice_pitch = 0;
-    desc.num_mip_levels    = 0;
-    desc.num_samples       = 0;
-#ifdef CL_VERSION_2_0
-    desc.mem_object        = NULL;
-#else
-    desc.buffer            = NULL;
-#endif
-
-    // Create first image based on host memory inputA
-    ocl->srcA = clCreateImage(ocl->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, &format, &desc, inputA, &err);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateImage for srcA returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Create second image based on host memory inputB
-    ocl->srcB = clCreateImage(ocl->context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, &format, &desc, inputB, &err);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateImage for srcB returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Create third (output) image based on host memory outputC
-    ocl->dstMem = clCreateImage(ocl->context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, &format, &desc, outputC, &err);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateImage for dstMem returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-
-    return CL_SUCCESS;
-}
-
-
-/*
- * Set kernel arguments
- */
-cl_uint SetKernelArguments(ocl_args_d_t *ocl)
-{
-    cl_int err = CL_SUCCESS;
-
-    err  =  clSetKernelArg(ocl->kernel, 0, sizeof(cl_mem), (void *)&ocl->srcA);
-    if (CL_SUCCESS != err)
-    {
-        LogError("error: Failed to set argument srcA, returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    err  = clSetKernelArg(ocl->kernel, 1, sizeof(cl_mem), (void *)&ocl->srcB);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: Failed to set argument srcB, returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    err  = clSetKernelArg(ocl->kernel, 2, sizeof(cl_mem), (void *)&ocl->dstMem);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: Failed to set argument dstMem, returned %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    return err;
-}
-
-
-/*
- * Execute the kernel
- */
-cl_uint ExecuteAddKernel(ocl_args_d_t *ocl, cl_uint width, cl_uint height)
-{
-    cl_int err = CL_SUCCESS;
-
-    // Define global iteration space for clEnqueueNDRangeKernel.
-    size_t globalWorkSize[2] = {width, height};
-
-
-    // execute kernel
-    err = clEnqueueNDRangeKernel(ocl->commandQueue, ocl->kernel, 2, NULL, globalWorkSize, NULL, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: Failed to run kernel, return %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Wait until the queued kernel is completed by the device
-    err = clFinish(ocl->commandQueue);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clFinish return %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    return CL_SUCCESS;
-}
-
-
-/*
- * "Read" the result buffer (mapping the buffer to the host memory address)
- */
-bool ReadAndVerify(ocl_args_d_t *ocl, cl_uint width, cl_uint height, cl_int *inputA, cl_int *inputB)
-{
-    cl_int err = CL_SUCCESS;
-    bool result = true;
-
-    // Enqueue a command to map the buffer object (ocl->dstMem) into the host address space and returns a pointer to it
-    // The map operation is blocking
-    size_t origin[] = {0, 0, 0};
-    size_t region[] = {width, height, 1};
-    size_t image_row_pitch;
-    size_t image_slice_pitch;
-    cl_int *resultPtr = (cl_int *)clEnqueueMapImage(ocl->commandQueue, ocl->dstMem, true, CL_MAP_READ, origin, region, &image_row_pitch, &image_slice_pitch, 0, NULL, NULL, &err);
-
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clEnqueueMapBuffer returned %s\n", TranslateOpenCLError(err));
-        return false;
-    }
-
-    // Call clFinish to guarantee that output region is updated
-    err = clFinish(ocl->commandQueue);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clFinish returned %s\n", TranslateOpenCLError(err));
-    }
-
-    // We mapped dstMem to resultPtr, so resultPtr is ready and includes the kernel output !!!
-    // Verify the results
-    unsigned int size = width * height;
-    for (unsigned int k = 0; k < size; ++k)
-    {
-        if (resultPtr[k] != inputA[k] + inputB[k])
-        {
-            LogError("Verification failed at %d: (%d + %d = %d)\n", k, inputA[k], inputB[k], resultPtr[k]);
-            result = false;
-        }
-    }
-
-     // Unmapped the output buffer before releasing it
-    err = clEnqueueUnmapMemObject(ocl->commandQueue, ocl->dstMem, resultPtr, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clEnqueueUnmapMemObject returned %s\n", TranslateOpenCLError(err));
-    }
-
-    return result;
-}
-
-
-
 int main(int argc, char* argv[])
 {
     cl_int err;
     ocl_args_d_t ocl;
     cl_device_type deviceType = CL_DEVICE_TYPE_GPU;
     LogInfo("Selected device type is CL_DEVICE_TYPE_GPU\n");
-    //placeholder for the OpenCL platform string
-
-    cl_uint arrayWidth  = 1024;
-    cl_uint arrayHeight = 1024;
-
-
-
-    //initialize Open CL objects (context, queue, etc.)
+    
+    ////
+    // initialize Open CL objects (context, queue, etc.)
+    ////
     std::string platformStr;
     if (CL_SUCCESS != SetupOpenCL(&ocl, deviceType, platformStr))// <- platform selection
         return -1;
+    
+    ////
+    // host inputs
+    ////
+    const size_t n_hashes = 1;
+    // unsigned int buffer[N_BUFFER_sz];
+    s_inbuf h_in_buf[n_hashes];// = h_inbuf[];// = {1}
+    s_outbuf h_out_buf[n_hashes];
 
-    // allocate working buffers. 
-    // the buffer should be aligned with 4K page and size should fit 64-byte cached line
-    cl_uint optimizedSize = ((sizeof(cl_int) * arrayWidth * arrayHeight - 1)/64 + 1) * 64;
-    cl_int* inputA;
-    cl_int* inputB;
-    cl_int* outputC;
-    if(posix_memalign((void**)&inputA, 4096, optimizedSize) != 0)
+    // init host data
+    LogInfo("> N_BUFFER_sz=%d\n", N_BUFFER_sz);
+    for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
     {
-        LogError("Error: posix_memalign failed to allocate buffer.\n");
-        return -1;
-    }
-    if(posix_memalign((void**)&inputB, 4096, optimizedSize) != 0)
-    {
-        LogError("Error: posix_memalign failed to allocate buffer.\n");
-        return -1;
-    }
-    if(posix_memalign((void**)&outputC, 4096, optimizedSize) != 0)
-    {
-        LogError("Error: posix_memalign failed to allocate buffer.\n");
-        return -1;
+        LogInfo("> Input string:");
+        h_in_buf[ind_hash].length = n_hashes;
+        for (size_t ind = 0; ind < N_BUFFER_sz; ind++)
+        {
+            h_in_buf[ind_hash].buffer[ind] = 0x00000000;
+            //h_out_buf[n_hashes].buffer[ind] = 0xffffffff;
+        }
+        LogInfo("\n");
     }
 
-    //random input
-    // generateInput(inputA, arrayWidth, arrayHeight);
-    // generateInput(inputB, arrayWidth, arrayHeight);
 
-    // Create OpenCL buffers from host memory
-    // These buffers will be used later by the OpenCL kernel
-    if (CL_SUCCESS != CreateBufferArguments(&ocl, inputA, inputB, outputC, arrayWidth, arrayHeight))
-        return -1;
-
-     // Create and build the OpenCL program
+    ////
+    // Create and build the OpenCL program
+    ////
     if (CL_SUCCESS != CreateAndBuildProgram(&ocl, (const char *)argv[1]))
         return -1;
 
     // Program consists of kernels.
-    // Each kernel can be called (enqueued) from the host part of OpenCL application.
-    // To call the kernel, you need to create it from existing program.
-    ocl.kernel = clCreateKernel(ocl.program, "Add", &err);
+    ocl.kernel = clCreateKernel(ocl.program, "func_sha256", &err);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clCreateKernel returned %s\n", TranslateOpenCLError(err));
         return -1;
     }
 
-    // Passing arguments into OpenCL kernel.
-    if (CL_SUCCESS != SetKernelArguments(&ocl))
-        return -1;
 
+    ////
+    // Create & write the data & set args
+    // OpenCL Device buffers
+    ////
+    // create buffers
+    ocl.in_buf = clCreateBuffer(ocl.context,  CL_MEM_READ_ONLY,  sizeof(s_inbuf) * n_hashes, NULL, &err);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clCreateImage for `ocl.in_length` returned %s\n", TranslateOpenCLError(err));
+        return -1;
+    }
+    ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY,  sizeof(s_outbuf)*N_BUFFER_sz * n_hashes, NULL, &err);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clCreateImage for `ocl.out_buf` returned %s\n", TranslateOpenCLError(err));
+        return -1;
+    }
+
+    // Write a and b vectors into compute device memory
+    err = clEnqueueWriteBuffer(ocl.commandQueue, ocl.in_buf, CL_TRUE, 0, sizeof(s_inbuf) * n_hashes, h_in_buf, 0, NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error:Copying `h_in_buf` to device at device `out_buf` %s\n", TranslateOpenCLError(err));
+        return -1;
+    }
+
+    // Passing arguments into OpenCL kernel.
+    err  = clSetKernelArg(ocl.kernel, 0, sizeof(cl_mem), (void *)&ocl.in_buf);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: Failed to set argument `in_buf`, returned %s\n", TranslateOpenCLError(err));
+        return -1;
+    }
+    err  = clSetKernelArg(ocl.kernel, 1, sizeof(cl_mem), (void *)&ocl.out_buf);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: Failed to set argument `out_buf`, returned %s\n", TranslateOpenCLError(err));
+        return -1;
+    }
 
 
     ////
@@ -435,7 +288,7 @@ int main(int argc, char* argv[])
         gettimeofday(&performanceCountNDRangeStart, NULL);
 
     // Execute (enqueue) the kernel
-    if (CL_SUCCESS != ExecuteAddKernel(&ocl, arrayWidth, arrayHeight))
+    if (CL_SUCCESS != ExecuteAddKernel(&ocl, n_hashes))
         return -1;
 
     struct timeval performanceCountNDRangeStop;
@@ -446,10 +299,13 @@ int main(int argc, char* argv[])
     ////
     // Get results from Device to Host
     ////
-    
-    // The last part of this function: getting processed results back.
-    // use map-unmap sequence to update original memory area with output buffer.
-    ReadAndVerify(&ocl, arrayWidth, arrayHeight, inputA, inputB);
+    err = clEnqueueReadBuffer(ocl.commandQueue, ocl.out_buf, CL_TRUE, 0, sizeof(s_outbuf)*N_BUFFER_sz * n_hashes, h_out_buf, 0, NULL, NULL);
+    if (CL_SUCCESS != err)
+    {
+        LogError("Error: clEnqueueReadBuffer returned %s\n", TranslateOpenCLError(err));
+        return false;
+    }
+
 
     // retrieve performance counter frequency
     if (queueProfilingEnable)
@@ -459,10 +315,23 @@ int main(int argc, char* argv[])
         LogInfo("NDRange performance counter time %f ms.\n", (runtime.tv_sec * 1000.f + runtime.tv_usec / 1000.f));
     }
 
-    free(inputA);
-    free(inputB);
-    free(outputC);
+
+    for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
+    {
+        LogInfo("> Hash string:\n");
+        h_in_buf[ind_hash].length = n_hashes;
+        for (int ind = 0; ind < N_BUFFER_sz; ind++)
+        {   
+            unsigned int little_end =
+                ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
+                ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
+                ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |
+                ((h_out_buf[ind_hash].buffer[ind]<<24)&0xff000000);
+            LogInfo("%2.x", h_out_buf[ind_hash].buffer[ind]);
+        }
+        LogInfo("\n");
+    }
+    LogError("> End of calculations\n");
 
     return 0;
 }
-
