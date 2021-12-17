@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     ////
     // host inputs
     ////
-    const size_t n_hashes = 1;
+    const size_t n_hashes = 2;
     // unsigned int buffer[N_BUFFER_sz];
     s_inbuf h_in_buf[n_hashes];// = h_inbuf[];// = {1}
     s_outbuf h_out_buf[n_hashes];
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
     ////
     // Get results from Device to Host
     ////
-    err = clEnqueueReadBuffer(ocl.commandQueue, ocl.out_buf, CL_TRUE, 0, sizeof(s_outbuf)*N_BUFFER_sz * n_hashes, h_out_buf, 0, NULL, NULL);
+    err = clEnqueueReadBuffer(ocl.commandQueue, ocl.out_buf, CL_TRUE, 0, sizeof(s_outbuf) * n_hashes, h_out_buf, 0, NULL, NULL);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clEnqueueReadBuffer returned %s\n", TranslateOpenCLError(err));
