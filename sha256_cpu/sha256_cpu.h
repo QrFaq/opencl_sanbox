@@ -2,12 +2,13 @@
 //#include <iostream>
 #include <cstring>
 
-class SHA256
+class SHA256_CPU
 {
 public:
-    SHA256();
+    SHA256_CPU();
     void get_msg_hash(uint8_t* hash, uint8_t* msg, const size_t msg_length);
     void process_block(uint8_t* block);
+    void reset();
 //private
     uint8_t* hash = nullptr;
     size_t blocks_number = -1;

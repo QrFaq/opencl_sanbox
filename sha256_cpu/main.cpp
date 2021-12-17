@@ -3,10 +3,10 @@
 #include <boost/format.hpp>
 #include <chrono>
 
-#include "SHA256.h"
+#include "sha256_cpu.h"
 
 /*
-g++ main.cpp sha256.cpp -o main
+g++ main.cpp sha256_cpu.cpp -o main
 */
 
 int main(int argc, char** argv)
@@ -17,12 +17,12 @@ int main(int argc, char** argv)
     const uint8_t nbytes = 32;
     uint8_t* hash = new uint8_t[nbytes];  // == 256 [bits]
     
-    SHA256 sha256 = SHA256();
+    SHA256_CPU sha256_cpu = SHA256_CPU();
 
     // get hash of the string with time measurement
     using ns = std::chrono::nanoseconds;
     auto start = std::chrono::high_resolution_clock::now();
-    sha256.get_msg_hash(hash, (uint8_t*) message, std::strlen(message));
+    sha256_cpu.get_msg_hash(hash, (uint8_t*) message, std::strlen(message));
     auto finish = std::chrono::high_resolution_clock::now();
     
     std::cout << boost::format(">\tInput message: `%1%`\n\thash:\t") % message;

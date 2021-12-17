@@ -29,7 +29,7 @@
  * problem reports or change requests be submitted to it directly
  *****************************************************************************/
 
-#include "../include/ocl_args.h"
+#include "include/ocl_args.h"
 #include <vector>
 #include <string>
 

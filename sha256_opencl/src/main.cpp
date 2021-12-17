@@ -12,168 +12,8 @@
 #include <vector>
 #include <string>
 
-#include "../3rd_parties/utils.h"
 #include <sys/time.h>
-
-#define N_BUFFER_sz 32/4
-
-typedef struct s_inbuf {
-	unsigned int length;
-	unsigned int buffer[N_BUFFER_sz];
-};
-
-typedef struct s_outbuf {
-	unsigned int buffer[N_BUFFER_sz];
-};
-
-/* Create and build OpenCL program from its source code */
-int CreateAndBuildProgram(ocl_args_d_t *ocl, const char * kernel_fpath)
-{
-    cl_int err = CL_SUCCESS;
-
-    // Upload the OpenCL C source code from the input file to source
-    char* source = NULL;
-    size_t src_size = 0;
-    err = ReadSourceFromFile(kernel_fpath, &source, &src_size);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: ReadSourceFromFile returned %s.\n", TranslateOpenCLError(err));
-        goto Finish;
-    }
-
-    // create OpenCL program object
-    ocl->program = clCreateProgramWithSource(ocl->context, 1, (const char**)&source, &src_size, &err);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateProgramWithSource returned %s.\n", TranslateOpenCLError(err));
-        goto Finish;
-    }
-
-    // Build the program
-    err = clBuildProgram(ocl->program, 1, &ocl->device, "", NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clBuildProgram() for source program returned %s.\n", TranslateOpenCLError(err));
-
-        // In case of error print the build log to the standard output
-        // First check the size of the log
-        // Then allocate the memory and obtain the log from the program
-        if (err == CL_BUILD_PROGRAM_FAILURE)
-        {
-            size_t log_size = 0;
-            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-
-            std::vector<char> build_log(log_size);
-            clGetProgramBuildInfo(ocl->program, ocl->device, CL_PROGRAM_BUILD_LOG, log_size, &build_log[0], NULL);
-
-            LogError("Error happened during the build of OpenCL program.\nBuild log:%s", &build_log[0]);
-        }
-    }
-
-Finish:
-    if (source)
-    {
-        delete[] source;
-        source = NULL;
-    }
-
-    return err;
-}
-
-/* Execute the kernel */
-cl_uint ExecuteAddKernel(ocl_args_d_t *ocl, const size_t n_hashes)
-{
-    cl_int err = CL_SUCCESS;
-
-    // execute kernel
-    err = clEnqueueNDRangeKernel(ocl->commandQueue, ocl->kernel, 1, NULL, &n_hashes, NULL, 0, NULL, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: Failed to run kernel, return %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Wait until the queued kernel is completed by the device
-    err = clFinish(ocl->commandQueue);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clFinish return %s\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    return CL_SUCCESS;
-}
-
-/* OpenCL platform, device, context, and command queue */
-int SetupOpenCL(ocl_args_d_t *ocl, cl_device_type deviceType, std::string& platformStr)
-{
-    // The following variable stores return codes for all OpenCL calls.
-    cl_int err = CL_SUCCESS;
-
-    // Query for all available OpenCL platforms on the system
-    // Here you enumerate all platforms and pick one which name has preferredPlatform as a sub-string
-    cl_platform_id platformId = FindOpenCLPlatform("Intel", deviceType, platformStr);
-    if (NULL == platformId)
-    {
-        LogError("Error: Failed to find OpenCL platform.\n");
-        return CL_INVALID_VALUE;
-    }
-
-    // Create context with device of specified type.
-    // Required device type is passed as function argument deviceType.
-    // So you may use this function to create context for any CPU or GPU OpenCL device.
-    // The creation is synchronized (pfn_notify is NULL) and NULL user_data
-    cl_context_properties contextProperties[] = {
-        CL_CONTEXT_PLATFORM,
-        (cl_context_properties)platformId,
-        0
-    };
-    ocl->context = clCreateContextFromType(contextProperties, deviceType, NULL, NULL, &err);
-    if ((CL_SUCCESS != err) || (NULL == ocl->context))
-    {
-        LogError("Couldn't create a context, clCreateContextFromType() returned '%s'.\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Query for OpenCL device which was used for context creation
-    err = clGetContextInfo(ocl->context, CL_CONTEXT_DEVICES, sizeof(cl_device_id), &ocl->device, NULL);
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clGetContextInfo() to get list of devices returned %s.\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    // Read the OpenCL platform's version and the device OpenCL and OpenCL C versions
-    GetPlatformAndDeviceVersion(platformId, ocl);
-
-    // Create command queue.
-    // OpenCL kernels are enqueued for execution to a particular device through special objects called command queues.
-    // Command queue guarantees some ordering between calls and other OpenCL commands.
-    // Here you create a simple in-order OpenCL command queue that doesn't allow execution of two kernels in parallel on a target device.
-#if defined(CL_VERSION_2_0) || defined(CL_VERSION_2_1)
-    if (OPENCL_VERSION_2_0 == ocl->deviceVersion || OPENCL_VERSION_2_1 == ocl->deviceVersion)
-    {
-        const cl_command_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
-        ocl->commandQueue = clCreateCommandQueueWithProperties(ocl->context, ocl->device, properties, &err);
-    } 
-    else {
-        // default behavior: OpenCL 1.2
-        cl_command_queue_properties properties = CL_QUEUE_PROFILING_ENABLE;
-        ocl->commandQueue = clCreateCommandQueue(ocl->context, ocl->device, properties, &err);
-    } 
-#else
-    // default behavior: OpenCL 1.2
-    cl_command_queue_properties properties = CL_QUEUE_PROFILING_ENABLE;
-    ocl->commandQueue = clCreateCommandQueue(ocl->context, ocl->device, properties, &err);
-#endif
-    if (CL_SUCCESS != err)
-    {
-        LogError("Error: clCreateCommandQueue() returned %s.\n", TranslateOpenCLError(err));
-        return err;
-    }
-
-    return CL_SUCCESS;
-}
+#include "include/sha256_opencl.h"
 
 int main(int argc, char* argv[])
 {
@@ -196,6 +36,8 @@ int main(int argc, char* argv[])
     // unsigned int buffer[N_BUFFER_sz];
     s_inbuf h_in_buf[n_hashes];// = h_inbuf[];// = {1}
     s_outbuf h_out_buf[n_hashes];
+
+
 
     // init host data, example
     for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
@@ -238,7 +80,7 @@ int main(int argc, char* argv[])
         LogError("Error: clCreateImage for `ocl.in_length` returned %s\n", TranslateOpenCLError(err));
         return -1;
     }
-    ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY,  sizeof(s_outbuf)*N_BUFFER_sz * n_hashes, NULL, &err);
+    ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY,  sizeof(s_outbuf) * n_hashes, NULL, &err);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clCreateImage for `ocl.out_buf` returned %s\n", TranslateOpenCLError(err));
@@ -271,17 +113,6 @@ int main(int argc, char* argv[])
     ////
     // Execute with time profiling
     ////
-
-    // Regularly you wish to use OpenCL in your application to achieve greater performance results
-    // that are hard to achieve in other ways.
-    // To understand those performance benefits you may want to measure time your application spent in OpenCL kernel execution.
-    // The recommended way to obtain this time is to measure interval between two moments:
-    //   - just before clEnqueueNDRangeKernel is called, and
-    //   - just after clFinish is called
-    // clFinish is necessary to measure entire time spending in the kernel, measuring just clEnqueueNDRangeKernel is not enough,
-    // because this call doesn't guarantees that kernel is finished.
-    // clEnqueueNDRangeKernel is just enqueue new command in OpenCL command queue and doesn't wait until it ends.
-    // clFinish waits until all commands in command queue are finished, that suits your need to measure time.
     struct timeval performanceCountNDRangeStart;
     bool queueProfilingEnable = true;
     if (queueProfilingEnable)

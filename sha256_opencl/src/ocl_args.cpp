@@ -1,4 +1,4 @@
-#include "../3rd_parties/utils.h"
+#include "3rd_parties/utils.h"
 
 ocl_args_d_t::ocl_args_d_t():
         context(NULL),

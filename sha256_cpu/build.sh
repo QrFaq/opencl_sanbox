@@ -1,2 +1,2 @@
-g++ main.cpp sha256.cpp -o main
+g++ main.cpp sha256_cpu.cpp -o main
 ./main
