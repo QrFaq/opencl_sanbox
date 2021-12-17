@@ -130,11 +130,14 @@ int main(int argc, char* argv[])
         for (int i = 0; i < std::strlen(message); i++)
         {
             LogInfo("%02x", message[i]);
-            oss << std::hex << static_cast<int>(message[i]);
+            oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(message[i]);
         }
         LogInfo("`\n");
         res_table_str[hash_ind * 2][0] = std::string("cpu");
-        res_table_str[hash_ind * 2][1] = oss.str().c_str();
+        res_table_str[hash_ind * 2 + 1][0] = std::string("gpu");
+        res_table_str[hash_ind * 2][1] = oss.str();//.c_str();
+        res_table_str[hash_ind * 2 + 1][1] = oss.str();//.c_str();
+        oss.str("");
         oss.clear();
         // LogInfo(">>>>>>>> TEST hex_str=`%s`\n", oss.str().c_str());
     }
@@ -162,15 +165,19 @@ int main(int argc, char* argv[])
         for (int i = 0; i < nbytes; i++)
         {
             LogInfo("%02x", static_cast<int>(hash[i]));
-            oss << std::hex << static_cast<int>(hash[i]);
+            oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(hash[i]);
         }
         LogInfo("\n");
-        res_table_str[hash_ind * 2][3] = oss.str().c_str();
+        res_table_str[hash_ind * 2][2] = oss.str();//.c_str();
+        oss.str("");
         oss.clear();
         sha256_cpu.reset();
-        total_cpu_calc_time = total_cpu_calc_time + std::chrono::duration_cast<ns>(finish - start).count();
-        oss << std::hex << total_cpu_calc_time;
-        res_table_str[hash_ind * 2][4] = oss.str().c_str();
+        unsigned long cpu_calc_time = std::chrono::duration_cast<ns>(finish - start).count();
+        oss << std::dec << cpu_calc_time/1000000.f;
+        res_table_str[hash_ind * 2][3] = oss.str();//.c_str();
+        oss.str("");
+        oss.clear();
+        total_cpu_calc_time = total_cpu_calc_time + cpu_calc_time;
 
         // free memory of CPU code
         delete[] hash, message; 
@@ -273,17 +280,17 @@ int main(int argc, char* argv[])
 
 
 
-    for (int ind_hash = 0; ind_hash < n_hashes_gpu_process; ind_hash++)
+    for (int hash_ind = 0; hash_ind < n_hashes_gpu_process; hash_ind++)
     {
-        LogInfo("> Hash string GPU[%i]:`", ind_hash);
-        h_in_buf[ind_hash].length = n_hashes_gpu_process;
+        LogInfo("> Hash string GPU[%i]:`", hash_ind);
+        h_in_buf[hash_ind].length = n_hashes_gpu_process;
         for (int ind = 0; ind < N_BUFFER_sz; ind++)
         {   
-            unsigned int little_end = //h_out_buf[ind_hash].buffer[ind];
-                ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
-                ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
-                ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |
-                ((h_out_buf[ind_hash].buffer[ind]<<24)&0xff000000);
+            unsigned int little_end = //h_out_buf[hash_ind].buffer[ind];
+                ((h_out_buf[hash_ind].buffer[ind]>>24)&0xff) |
+                ((h_out_buf[hash_ind].buffer[ind]<<8)&0xff0000) |
+                ((h_out_buf[hash_ind].buffer[ind]>>8)&0xff00) |
+                ((h_out_buf[hash_ind].buffer[ind]<<24)&0xff000000);
             unsigned char bytes[4] = {
                 (little_end >> 24) & 0xFF,
                 (little_end >> 16) & 0xFF,
@@ -293,8 +300,13 @@ int main(int argc, char* argv[])
             //sprintf(buffer,"%02X ",onebyte);
             // LogInfo("%02x%02x%02x%02x", bytes[0],bytes[1],bytes[2],bytes[3]);//works
             LogInfo("%0.8x", little_end);
+            oss << std::hex << std::setfill('0') << std::setw(8) << static_cast<int>(little_end);
         }
         LogInfo("`\n");
+
+        res_table_str[hash_ind * 2 + 1][2] = oss.str();//.c_str();
+        oss.str("");
+        oss.clear();
     }
 
     // retrieve performance counter frequency
@@ -302,7 +314,17 @@ int main(int argc, char* argv[])
     {
         struct timeval runtime;
         timersub(&performanceCountNDRangeStop, &performanceCountNDRangeStart, &runtime);
-        LogInfo("\tDuration: %f [ms]\n", (runtime.tv_sec * 1000.f + runtime.tv_usec / 1000.f));
+        float gpu_calc_time = (runtime.tv_sec * 1000.f + runtime.tv_usec / 1000.f);
+        LogInfo("\tDuration: %f [ms]\n", gpu_calc_time);
+
+        for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
+        {
+            oss << std::dec << gpu_calc_time / n_hashes;
+            res_table_str[hash_ind * 2+1][3] = oss.str();//.c_str();
+            oss.str("");
+            oss.clear();
+        }
+
     }
     //err = clFlush(ocl.commandQueue);
 
@@ -313,23 +335,23 @@ int main(int argc, char* argv[])
 
     ////
     // Generate output table
-    /*TextTable t( '-', '|', '+' );
+    LogError("> Draw table : start\n");
+    TextTable t( '-', '|', '+' );
 
     t.add( "Hardware" ); t.add( "Input string" ); t.add( "Hash" );t.add( "Time, [ms]" );t.endOfRow();
-
-
     for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
     {
-        std::string res_table_str[n_hashes * 2][4];
+        //std::string res_table_str[n_hashes * 2][4];
         t.add(res_table_str[hash_ind * 2][0]);
         t.add(res_table_str[hash_ind * 2][1]);
         t.add(res_table_str[hash_ind * 2][2]);
         t.add(res_table_str[hash_ind * 2][3]);
+        t.endOfRow();
 
-        res_table_str[hash_ind * 2 + 1][0] = "";
-        res_table_str[hash_ind * 2 + 1][1] = "";
-        res_table_str[hash_ind * 2 + 1][2] = "";
-        res_table_str[hash_ind * 2 + 1][3] = "";
+        //res_table_str[hash_ind * 2 + 1][0] = "s";
+        //res_table_str[hash_ind * 2 + 1][1] = "s";
+        //res_table_str[hash_ind * 2 + 1][2] = "s";
+        //res_table_str[hash_ind * 2 + 1][3] = "s";
 
         t.add(res_table_str[hash_ind * 2 + 1][0]);
         t.add(res_table_str[hash_ind * 2 + 1][1]);
@@ -339,7 +361,9 @@ int main(int argc, char* argv[])
     }
 
     t.setAlignment( 2, TextTable::Alignment::RIGHT );
-    std::cout << t;*/
+    std::cout << t;
+    LogError("> Draw table : end\n");
+
     
 
 
