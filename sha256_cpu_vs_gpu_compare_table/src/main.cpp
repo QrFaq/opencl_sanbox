@@ -51,12 +51,54 @@ std::string gen_random_str(const int len) {
     return tmp_s;
 }
 
+std::string get_str_from_osstream(std::ostringstream* oss)
+{
+    std::string str = oss->str();//.c_str();
+    oss->str("");
+    oss->clear();
+    return str;
+}
+
+void generate_output_table(std::string res_table_str[][4], const unsigned int n_hashes)
+{
+    ////
+    // Generate output table
+    LogError("> Draw table : start\n");
+    TextTable t( '-', '|', '+' );
+
+    t.add( "Hardware" ); t.add( "Input string" ); t.add( "Hash" );t.add( "Time, [ms]" );t.endOfRow();
+    for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
+    {
+        //std::string res_table_str[n_hashes * 2][4];
+        t.add(res_table_str[hash_ind * 2][0]);
+        t.add(res_table_str[hash_ind * 2][1]);
+        t.add(res_table_str[hash_ind * 2][2]);
+        t.add(res_table_str[hash_ind * 2][3]);
+        t.endOfRow();
+
+        //res_table_str[hash_ind * 2 + 1][0] = "s";
+        //res_table_str[hash_ind * 2 + 1][1] = "s";
+        //res_table_str[hash_ind * 2 + 1][2] = "s";
+        //res_table_str[hash_ind * 2 + 1][3] = "s";
+
+        t.add(res_table_str[hash_ind * 2 + 1][0]);
+        t.add(res_table_str[hash_ind * 2 + 1][1]);
+        t.add(res_table_str[hash_ind * 2 + 1][2]);
+        t.add(res_table_str[hash_ind * 2 + 1][3]);
+        t.endOfRow();
+    }
+
+    t.setAlignment( 2, TextTable::Alignment::RIGHT );
+    std::cout << t;
+    LogError("> Draw table : end\n");
+}
+
 int main(int argc, char* argv[])
 {
     ////
     // Hash configuraions
     ////
-    const unsigned int n_hashes = 3;                // cpu
+    const unsigned int n_hashes = 5;                // cpu
     const size_t gen_str_len = 32;
     const size_t n_hashes_gpu_process = n_hashes;   // gpu
     
@@ -104,7 +146,7 @@ int main(int argc, char* argv[])
         LogError("Error: clCreateImage for `ocl.in_length` returned %s\n", TranslateOpenCLError(err));
         return -1;
     }
-    ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY,  sizeof(s_outbuf)*N_BUFFER_sz * n_hashes_gpu_process, NULL, &err);
+    ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY,  sizeof(s_outbuf) * n_hashes_gpu_process, NULL, &err);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clCreateImage for `ocl.out_buf` returned %s\n", TranslateOpenCLError(err));
@@ -133,13 +175,13 @@ int main(int argc, char* argv[])
             oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(message[i]);
         }
         LogInfo("`\n");
+        
+        // fill table array
         res_table_str[hash_ind * 2][0] = std::string("cpu");
         res_table_str[hash_ind * 2 + 1][0] = std::string("gpu");
-        res_table_str[hash_ind * 2][1] = oss.str();//.c_str();
-        res_table_str[hash_ind * 2 + 1][1] = oss.str();//.c_str();
-        oss.str("");
-        oss.clear();
-        // LogInfo(">>>>>>>> TEST hex_str=`%s`\n", oss.str().c_str());
+        std::string inp_msg_str = get_str_from_osstream(&oss);
+        res_table_str[hash_ind * 2][1] = inp_msg_str;
+        res_table_str[hash_ind * 2 + 1][1] = inp_msg_str;
     }
 
 
@@ -168,15 +210,18 @@ int main(int argc, char* argv[])
             oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(hash[i]);
         }
         LogInfo("\n");
-        res_table_str[hash_ind * 2][2] = oss.str();//.c_str();
-        oss.str("");
-        oss.clear();
+
+        // fill table array
+        std::string buf_str = get_str_from_osstream(&oss);  // hash is here
+        res_table_str[hash_ind * 2][2] = buf_str;
+
         sha256_cpu.reset();
+
+        // calculate unit\total processing time & add to the table
         unsigned long cpu_calc_time = std::chrono::duration_cast<ns>(finish - start).count();
         oss << std::dec << cpu_calc_time/1000000.f;
-        res_table_str[hash_ind * 2][3] = oss.str();//.c_str();
-        oss.str("");
-        oss.clear();
+        buf_str = get_str_from_osstream(&oss);  // unit processing time is here
+        res_table_str[hash_ind * 2][3] = buf_str;        
         total_cpu_calc_time = total_cpu_calc_time + cpu_calc_time;
 
         // free memory of CPU code
@@ -291,22 +336,14 @@ int main(int argc, char* argv[])
                 ((h_out_buf[hash_ind].buffer[ind]<<8)&0xff0000) |
                 ((h_out_buf[hash_ind].buffer[ind]>>8)&0xff00) |
                 ((h_out_buf[hash_ind].buffer[ind]<<24)&0xff000000);
-            unsigned char bytes[4] = {
-                (little_end >> 24) & 0xFF,
-                (little_end >> 16) & 0xFF,
-                (little_end >> 8) & 0xFF,
-                little_end & 0xFF
-            };
-            //sprintf(buffer,"%02X ",onebyte);
-            // LogInfo("%02x%02x%02x%02x", bytes[0],bytes[1],bytes[2],bytes[3]);//works
             LogInfo("%0.8x", little_end);
             oss << std::hex << std::setfill('0') << std::setw(8) << static_cast<int>(little_end);
         }
         LogInfo("`\n");
 
-        res_table_str[hash_ind * 2 + 1][2] = oss.str();//.c_str();
-        oss.str("");
-        oss.clear();
+        // fill table array
+        std::string buf_str = get_str_from_osstream(&oss);  // hash is here
+        res_table_str[hash_ind * 2 + 1][2] = buf_str;
     }
 
     // retrieve performance counter frequency
@@ -320,9 +357,8 @@ int main(int argc, char* argv[])
         for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
         {
             oss << std::dec << gpu_calc_time / n_hashes;
-            res_table_str[hash_ind * 2+1][3] = oss.str();//.c_str();
-            oss.str("");
-            oss.clear();
+            std::string buf_str = get_str_from_osstream(&oss);  // init processing time is here
+            res_table_str[hash_ind * 2+1][3] = buf_str;
         }
 
     }
@@ -333,37 +369,7 @@ int main(int argc, char* argv[])
     // clReleaseMemObject(ocl.out_buf)  
     LogError("> End of calculations\n");
 
-    ////
-    // Generate output table
-    LogError("> Draw table : start\n");
-    TextTable t( '-', '|', '+' );
-
-    t.add( "Hardware" ); t.add( "Input string" ); t.add( "Hash" );t.add( "Time, [ms]" );t.endOfRow();
-    for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
-    {
-        //std::string res_table_str[n_hashes * 2][4];
-        t.add(res_table_str[hash_ind * 2][0]);
-        t.add(res_table_str[hash_ind * 2][1]);
-        t.add(res_table_str[hash_ind * 2][2]);
-        t.add(res_table_str[hash_ind * 2][3]);
-        t.endOfRow();
-
-        //res_table_str[hash_ind * 2 + 1][0] = "s";
-        //res_table_str[hash_ind * 2 + 1][1] = "s";
-        //res_table_str[hash_ind * 2 + 1][2] = "s";
-        //res_table_str[hash_ind * 2 + 1][3] = "s";
-
-        t.add(res_table_str[hash_ind * 2 + 1][0]);
-        t.add(res_table_str[hash_ind * 2 + 1][1]);
-        t.add(res_table_str[hash_ind * 2 + 1][2]);
-        t.add(res_table_str[hash_ind * 2 + 1][3]);
-        t.endOfRow();
-    }
-
-    t.setAlignment( 2, TextTable::Alignment::RIGHT );
-    std::cout << t;
-    LogError("> Draw table : end\n");
-
+    generate_output_table(res_table_str, n_hashes);
     
 
 

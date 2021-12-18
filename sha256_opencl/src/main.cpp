@@ -19,8 +19,8 @@ int main(int argc, char* argv[])
 {
     cl_int err;
     ocl_args_d_t ocl;
-    cl_device_type deviceType = CL_DEVICE_TYPE_GPU;
-    LogInfo("Selected device type is CL_DEVICE_TYPE_GPU\n");
+    cl_device_type deviceType = CL_DEVICE_TYPE_GPU;//CL_DEVICE_TYPE_GPU;//
+    //LogInfo("Selected device type is CL_DEVICE_TYPE_GPU\n");
     
     ////
     // initialize Open CL objects (context, queue, etc.)

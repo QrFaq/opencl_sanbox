@@ -111,8 +111,7 @@ __constant uint k_sha256[64] =//+
 // SHA256_STEP(MAJa,CHa,a,b,c,d,e,f,g,h,x,K) == h= K + x==w<t> + SUM1 + CHa + SUM0 + Maj
 #define SHA256_STEP(MAJa,CHa,a,b,c,d,e,f,g,h,T12,x,K)  \
 {\
-  T12 = 0;\
-  T12 += h + SUM1 (e) + CHa (e,f,g) + K + x;/*T1*/\
+  T12 = h + SUM1 (e) + CHa (e,f,g) + K + x;/*T1*/\
   \
   h = g;\
   g = f;\
@@ -232,6 +231,7 @@ static void sha256_process2 (const unsigned int *W, unsigned int *digest)
 } 
 
 static void sha256(__global const unsigned int *pass, int pass_len, unsigned int* hash)
+// static void sha256(__local const unsigned int *pass, int pass_len, unsigned int* hash)
 {
     int plen=pass_len/4;
     if (mod(pass_len, 4)) plen++;
@@ -339,10 +339,17 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
 {
     unsigned int idx = get_global_id(0);
     unsigned int hash[32/4]={0};
-
+    
+    // copy to local memory
+    unsigned int length = inbuffer[idx].length;
+    __local unsigned int buffer[32/4];// = inbuffer[idx].buffer;
+    // for (int i=0; i < length; i++)
+    //   buffer[i] = inbuffer[idx].buffer[i];
+    
     // for (int i=0; i < 32/4; i++)
     //   printf("inbuffer[idx].buffer[i]=%08x\n", inbuffer[idx].buffer[i]);
-
+    
+    // sha256(buffer, length, hash);
     sha256(inbuffer[idx].buffer, inbuffer[idx].length, hash);
     outbuffer[idx].buffer[0]=hash[0];
     outbuffer[idx].buffer[1]=hash[1];

@@ -99,3 +99,36 @@ Selected platform: Intel(R) OpenCL HD Graphics
 > Draw table : end
 
 ```
+
+## OpenCL Kernel Load test
+```
+cd <project folder>
+mkdir build
+cd build
+cmake .
+make
+./main </path/to>/sha256_opencl/src/sha256.cl
+```
+
+```
+Number of available platforms: 3
+Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+Found platform: Intel(R) OpenCL HD Graphics
+> Used device is GPU: CHECKED
+> Load test : start
+> Load test : end
+
+Test result information:
+	Loop kernal launch time: 15 [s]
+	Total GPU working duration: 14857.585938 [ms]
+	Kernel calculation time per batch: 94.487457 [hash/s]
+	Total number of calculated hashes: 157244
+Selected processing platform:
+	Intel(R) OpenCL HD Graphics
+Tested Hardware information:
+	Tested hardware device: Intel(R) HD Graphics 630 [0x5912]
+	Hardware version: OpenCL 3.0 NEO 
+	Software version: 21.36.20889
+	OpenCL C version: OpenCL C 3.0 
+	Parallel compute units: 24
+```

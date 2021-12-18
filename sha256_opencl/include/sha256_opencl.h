@@ -12,6 +12,15 @@ typedef struct s_outbuf {
 	unsigned int buffer[N_BUFFER_sz];
 };
 
+// typedef struct s_inbuf_cl {
+// 	cl_uint* length;
+// 	cl_uint* buffer;//unsigned int buffer[N_BUFFER_sz];
+// };
+
+// typedef struct s_outbuf_cl {
+// 	unsigned int buffer[N_BUFFER_sz];
+// };
+
 /* Create and build OpenCL program from its source code */
 int CreateAndBuildProgram(ocl_args_d_t *ocl, const char * kernel_fpath)
 {

@@ -211,7 +211,7 @@ bool CheckPreferredPlatformMatch(cl_platform_id platform, const char* preferredP
     {
         // The checked platform is the one we're looking for
         match = true;
-        LogInfo("Selected platform: %s\n",&platformName[0]);
+        LogInfo("> Found platform: %s\n", &platformName[0]);
     }
 
     return match;
@@ -237,7 +237,7 @@ cl_platform_id FindOpenCLPlatform(const char* preferredPlatform, cl_device_type 
         LogError("Error: clGetplatform_ids() to get num platforms returned %s.\n", TranslateOpenCLError(err));
         return NULL;
     }
-    LogInfo("Number of available platforms: %u\n", numPlatforms);
+    LogInfo("> Number of available platforms: %u\n", numPlatforms);
 
     if (0 == numPlatforms)
     {
@@ -273,15 +273,34 @@ cl_platform_id FindOpenCLPlatform(const char* preferredPlatform, cl_device_type 
         // match is true if the platform's name is the required one or don't care (NULL)
         if (match)
         {
+            
+            // check platform device type
+            // if (match)
+            // {
+            //     cl_device_id id;
+            //     clGetDeviceIDs(platforms[i], deviceType, 0, &id, NULL);
+            //     cl_device_type dev_type;
+            //     clGetDeviceInfo(id, CL_DEVICE_TYPE, sizeof(dev_type), &dev_type, NULL);
+
+            //     LogError("<><> Device types: id=%d, CPU=%d, GPU=%d, FOUND=%d\n", id, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, dev_type);
+
+            //     // Check that device was slected correctly
+            //     if (dev_type != deviceType)
+            //     {
+            //         match = false;
+            //         continue;
+            //     }   
+            // }
+
             // Obtains the number of deviceType devices available on platform
             // When the function failed we expect numDevices to be zero.
             // We ignore the function return value since a non-zero error code
             // could happen if this platform doesn't support the specified device type.
             err = clGetDeviceIDs(platforms[i], deviceType, 0, NULL, &numDevices);
-            if (CL_SUCCESS != err)
-            {
-                LogError("clGetDeviceIDs() returned %s for platform %s.\n", TranslateOpenCLError(err), platformStr.c_str());
-            }
+            // if (CL_SUCCESS != err)
+            // {
+            //     LogError("> clGetDeviceIDs() returned %s for platform %s., %d\n", TranslateOpenCLError(err), platformStr.c_str(), i);
+            // }
 
             // There is at list one device that answer the requirements
             if (0 != numDevices)
