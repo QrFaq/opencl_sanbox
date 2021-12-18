@@ -114,7 +114,6 @@ make
 Number of available platforms: 3
 Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
 Found platform: Intel(R) OpenCL HD Graphics
-> Used device is GPU: CHECKED
 > Load test : start
 > Load test : end
 
