@@ -111,23 +111,22 @@ make
 ```
 
 ```
-Number of available platforms: 3
-Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
-Found platform: Intel(R) OpenCL HD Graphics
+> Number of available platforms: 3
+> Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
 > Load test : start
 > Load test : end
 
 Test result information:
-	Loop kernal launch time: 15 [s]
-	Total GPU working duration: 14857.585938 [ms]
-	Kernel calculation time per batch: 94.487457 [hash/s]
-	Total number of calculated hashes: 157244
+	Loop kernal launch time: 10 [s]
+	Total CPU/GPU working duration: 8944.642578 [ms]
+	Kernel calculation time per batch: 110864.242188 [hash/s]
+	Total number of calculated hashes: 991641
 Selected processing platform:
-	Intel(R) OpenCL HD Graphics
+	Intel(R) CPU Runtime for OpenCL(TM) Applications
 Tested Hardware information:
-	Tested hardware device: Intel(R) HD Graphics 630 [0x5912]
-	Hardware version: OpenCL 3.0 NEO 
-	Software version: 21.36.20889
-	OpenCL C version: OpenCL C 3.0 
-	Parallel compute units: 24
+	Tested hardware device: Intel(R) Core(TM) i7-7700K CPU @ 4.20GHz
+	Hardware version: OpenCL 2.1 (Build 0)
+	Software version: 18.1.0.0920
+	OpenCL C version: OpenCL C 2.0 
+	Parallel compute units: 8
 ```

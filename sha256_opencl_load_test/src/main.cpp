@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 {
     int64_t t_interval_s = 10;
     const size_t gpu_batch_sz = 1;
-    cl_device_type deviceType = CL_DEVICE_TYPE_GPU;
+    cl_device_type deviceType = CL_DEVICE_TYPE_CPU;
 
     ////
     // GPU configuration
@@ -251,11 +251,12 @@ int main(int argc, char* argv[])
     if (queueProfilingEnable)
     {
         LogInfo("\nTest result information:\n");
-        unsigned int total_numb_calc_hashes = static_cast<unsigned int>(gpu_batch_sz) * loop_counter;
-        float avg_gpu_calc_time_ms = total_gpu_calc_time / static_cast<float>(total_numb_calc_hashes);
+        unsigned int total_numb_calc_hashes = loop_counter;//static_cast<unsigned int>(gpu_batch_sz) * loop_counter;
+        float avg_gpu_calc_time_ms = static_cast<float>(total_numb_calc_hashes) / total_gpu_calc_time;
         LogInfo("\tLoop kernal launch time: %d [s]\n", t_interval_s);
-        LogInfo("\tTotal GPU working duration: %f [ms]\n", total_gpu_calc_time);
-        LogInfo("\tKernel calculation time per batch: %f [hash/s]\n", avg_gpu_calc_time_ms * 1000);
+        LogInfo("\tTotal CPU/GPU working duration: %f [ms]\n", total_gpu_calc_time);
+        LogInfo("\tKernel calculation time per batch: %f [hash/s]\n", avg_gpu_calc_time_ms * 1000.f);
+
         LogInfo("\tTotal number of calculated hashes: %d\n", total_numb_calc_hashes);
         LogInfo("Selected processing platform:\n\t%s\n", platformStr.c_str());       
         LogInfo("Tested Hardware information:\n");
