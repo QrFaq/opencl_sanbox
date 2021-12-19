@@ -101,6 +101,24 @@ Selected platform: Intel(R) OpenCL HD Graphics
 ```
 
 ## OpenCL Kernel Load test
+### Input arguments
+```
+--help
+Options:
+  -h [ --help ]               Help
+  --k arg (=path to .cl file) kernel_path
+  --t arg (=1)                t_interval
+  --g arg (=1)                global_work_sz==gpu_batch_sz
+  --l arg (=1)                local_work_sz
+```
+
+### Additional information
+1. To select CPU\GPU (program shall be recompiled for now);
+2. gpu_batch_sz == global_work_sz
+3. Default launch: --t 1 --g 1 --l 1
+4. The time argument measures in seconds
+
+### Launch with default settings (1 s test)
 ```
 cd <project folder>
 mkdir build
@@ -110,10 +128,34 @@ make
 ./main </path/to>/sha256_opencl/src/sha256.cl
 ```
 
-Launch parameters:
-- t_interval_s = 10
-- gpu_batch_sz = 1
-- local_work_size = 1
+### Solution Load test
+
+#### Best (g,l) parameter pair detection
+
+- python 3.8
+- edit parameters inside `<../sha256_opencl_load_test/src/kernel_gl_gsize_analysis.py>`
+- execute
+```python ../sha256_opencl_load_test/src/kernel_gl_gsize_analysis.py```
+
+##### Result Speed graph
+
+![heat_map](https://user-images.githubusercontent.com/22077241/146688763-b0ec4346-ff6a-4bad-8a09-07616bb26550.png)
+
+##### Result Heat-map graph
+
+![speed](https://user-images.githubusercontent.com/22077241/146688770-96658d50-f755-4124-b785-5eea4ddbe5d8.png)
+
+##### Additional output
+
+```
+...
+> Parameters with the best result:
+	global-wsz=24
+	local-wsz=8
+	best speed=263307.312500 [hash/s]
+```
+
+#### CPU Load test (t=10s, g=1, l=1)
 ```
 > Number of available platforms: 3
 > Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
@@ -135,10 +177,7 @@ Tested Hardware information:
 	Parallel compute units: 8
 ```
 
-Run parameters:
-- t_interval_s = 10
-- gpu_batch_sz = 8
-- local_work_size = 2
+#### GPU Load test for the best (g,l) pair (t=10s, g=24, l=8)
 ```
 > Number of available platforms: 3
 > Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
@@ -148,9 +187,9 @@ Run parameters:
 
 Test result information:
 	Loop kernal launch time: 10 [s]
-	Total CPU/GPU working duration: 9410.205078 [ms]
-	Kernel calculation time per batch: 80557.648438 [hash/s]
-	Total number of calculated hashes: 758064
+	Total CPU/GPU working duration: 7981.213867 [ms]
+	Kernel calculation time per batch: 263307.312500 [hash/s]
+	Total number of calculated hashes: 2101512
 Selected processing platform:
 	Intel(R) OpenCL HD Graphics
 Tested Hardware information:
@@ -159,15 +198,15 @@ Tested Hardware information:
 	Software version: 21.36.20889
 	OpenCL C version: OpenCL C 3.0 
 	Parallel compute units: 24
+	Device max work-group: 24
+	Kernel work-group size: 24
 ```
 
 ### Speed up comparing with open source solution
+
 [sha 256 open source example](https://github.com/bkerler/opencl_brute/blob/master/Library/worker/generic/sha256.cl)
 
-Launch parameters:
-- t_interval_s = 10
-- gpu_batch_sz = 1
-- local_work_size = 1
+#### CPU Load test (t=10s, g=1, l=1)
 ```
 > Number of available platforms: 3
 > Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
@@ -195,16 +234,19 @@ Tested Hardware information:
 > Load test : end
 ```
 
-Run parameters:
-- t_interval_s = 10
-- gpu_batch_sz = 8
-- local_work_size = 2
+#### GPU Load test for the best (g,l) pair (t=10s, g=24, l=8)
 ```
+> Number of available platforms: 3
+> Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+> Found platform: Intel(R) OpenCL HD Graphics
+> Load test : start
+> Load test : end
+
 Test result information:
 	Loop kernal launch time: 10 [s]
-	Total CPU/GPU working duration: 9396.073242 [ms]
-	Kernel calculation time per batch: 81760.109375 [hash/s]
-	Total number of calculated hashes: 768224
+	Total CPU/GPU working duration: 7950.288086 [ms]
+	Kernel calculation time per batch: 270127.562500 [hash/s]
+	Total number of calculated hashes: 2147592
 Selected processing platform:
 	Intel(R) OpenCL HD Graphics
 Tested Hardware information:
@@ -213,4 +255,8 @@ Tested Hardware information:
 	Software version: 21.36.20889
 	OpenCL C version: OpenCL C 3.0 
 	Parallel compute units: 24
+	Device max work-group: 24
+	Kernel work-group size: 24
+
+* some configuration pairs have hung the GPU
 ```

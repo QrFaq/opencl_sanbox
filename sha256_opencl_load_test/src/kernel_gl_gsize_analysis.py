@@ -2,6 +2,7 @@ import subprocess
 import re
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def get_value_param_from_log(output, line_start):
     value = None
@@ -42,29 +43,37 @@ for global_work_size in range(1, GPU_PARAMS["DEVICE-MAX-WG"]+1):
 
         # if global divisible by local, then launch test
         if global_work_size % local_work_size == 0:
-            cmd_output = subprocess.run([
-                exec_path,
-                f"--k", f"{kernel_fpath}",
-                f"--t", f"{test_time}",
-                f"--g", f"{global_work_size}",
-                f"--l", f"{local_work_size}"
-            ], capture_output=True, text=True).stdout
+            try:
+                cmd_output = subprocess.run([
+                    exec_path,
+                    f"--k", f"{kernel_fpath}",
+                    f"--t", f"{test_time}",
+                    f"--g", f"{global_work_size}",
+                    f"--l", f"{local_work_size}"
+                ], capture_output=True, text=True, timeout=test_time*2.5).stdout
+            except Exception as err:
+                print(f"\tError: {err}")
+                continue
+
             speed = get_value_param_from_log(cmd_output, line_start="\tKernel calculation time per batch: ")
-            kernel_test_info.append((global_work_size, local_work_size, speed))
+            result = (global_work_size, local_work_size, speed)
+            kernel_test_info.append(result)
+            print(f"\tspeed={speed}")
 
 kernel_test_info = np.array(kernel_test_info)
-np.save("kernel_test_info", kernel_test_info)
+np.save(f"{save_fig_fpath}/kernel_test_info", kernel_test_info)
 
 
 fig1, ax1 = plt.subplots()
 line1, = ax1.plot(kernel_test_info[:, 0], kernel_test_info[:, 2], "--o", color="b", label="Speed(global wsz)")
-line2, = ax1.plot(kernel_test_info[:, 1], kernel_test_info[:, 2], "-*", color="r", alpha=0.3, label="Speed(local wsz)")
+line2, = ax1.plot(kernel_test_info[:, 1], kernel_test_info[:, 2], "*", color="r", alpha=0.3, label="Speed(local wsz)")
 ax1.set_ylabel('Speed,[hash/s]')
 ax1.set_xlabel('global OR local wsz, conv. units')
 ax1.set_title(f"Kernel test Speed(global OR local work size), time={test_time} [s]")
 plt.legend()
 plt.savefig(f"{save_fig_fpath}/speed.png")
 # plt.show()
+
 
 # create heat-map visualization matrix
 kernel_test_info_mx = np.zeros((GPU_PARAMS["DEVICE-MAX-WG"], GPU_PARAMS["KERNEL-WG-SZ"]))
@@ -73,6 +82,7 @@ for row_ind in range(0, kernel_test_info.shape[0]):
     r-=1
     c-=1
     kernel_test_info_mx[int(r), int(c)] = speed
+
 
 fig2, ax2 = plt.subplots()
 plt_img = ax2.matshow(kernel_test_info_mx)
@@ -87,3 +97,7 @@ ax2.set_title(f"Heat map Speed(global, local) work size, time={test_time} [s]")
 plt.savefig(f"{save_fig_fpath}/heat_map.png")
 #plt.show()
 plt.close()
+
+# Show parameters with the maximum speed, hash/s
+best_params = kernel_test_info[np.argmax(kernel_test_info[:, 2]), :]
+print(f"> Parameters with the best result:\n\tglobal-wsz={int(best_params[0])}\n\tlocal-wsz={int(best_params[1])}\n\tbest speed={best_params[2]} [hash/s]")
