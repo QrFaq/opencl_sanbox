@@ -19,6 +19,8 @@
 #include "include/sha256_opencl.h"
 #include <random>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
+#include <limits.h>  // for INT_MAX, INT_MIN
 
 typedef struct cl_s_inbuf {
 	cl_uint length;
@@ -127,6 +129,21 @@ cl_uint get_device_nparalle_comp_units_by_id(cl_device_id device_id)
     return maxComputeUnits;
 }
 
+cl_uint get_device_max_work_group_size_by_id(cl_device_id device_id)
+{
+    cl_uint maxWorkGroupSz;
+    clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE,
+            sizeof(maxWorkGroupSz), &maxWorkGroupSz, NULL);
+    return maxWorkGroupSz;
+}
+
+cl_uint get_kernel_work_group_size_by_id(cl_device_id device, cl_kernel kernel)
+{
+    cl_uint maxKernelWorkGroupSz;
+    clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE,
+            sizeof(maxKernelWorkGroupSz), &maxKernelWorkGroupSz, NULL);
+    return maxKernelWorkGroupSz;
+}
 
 /*
     Test Kernel time measurement based on generated
@@ -138,10 +155,31 @@ cl_uint get_device_nparalle_comp_units_by_id(cl_device_id device_id)
 */
 int main(int argc, char* argv[])
 {
-    int64_t t_interval_s = 10;
-    const size_t gpu_batch_sz = 8;
-    size_t local_work_size = 1;//gpu_batch_sz;
-    size_t global_work_size = gpu_batch_sz;//local_work_size*3;
+    ////
+    // Parse cmd arguments
+    boost::program_options::variables_map vm;
+    boost::program_options::options_description desc{"Options"};
+    desc.add_options()
+    ("help,h", "Help")
+    ("k", boost::program_options::value<std::string>()->default_value("path to .cl file"), "kernel_path")
+    ("t", boost::program_options::value<int64_t>()->default_value(1), "t_interval")
+    ("g", boost::program_options::value<size_t>()->default_value(1), "global_work_sz==gpu_batch_sz")
+    ("l", boost::program_options::value<size_t>()->default_value(1), "local_work_sz")
+    ;
+    store(parse_command_line(argc, argv, desc), vm);
+    boost::program_options::notify(vm);
+
+    if (vm.count("help"))
+    {
+        std::cout << desc << '\n';
+        return 0;
+    }
+
+    std::string kernel_path = vm["k"].as<std::string>();
+    int64_t t_interval_s = vm["t"].as<int64_t>();
+    size_t global_work_size = vm["g"].as<size_t>();
+    size_t local_work_size = vm["l"].as<size_t>();
+    const size_t gpu_batch_sz = global_work_size;
     cl_device_type deviceType = CL_DEVICE_TYPE_GPU;
 
     ////
@@ -174,7 +212,7 @@ int main(int argc, char* argv[])
 
 
     // Create and build the OpenCL program
-    if (CL_SUCCESS != CreateAndBuildProgram(&ocl, (const char *)argv[1]))
+    if (CL_SUCCESS != CreateAndBuildProgram(&ocl, (const char *) kernel_path.c_str()))
         return -1;
 
     // Program consists of kernels.
@@ -290,13 +328,14 @@ int main(int argc, char* argv[])
         LogInfo("Selected processing platform:\n\t%s\n", platformStr.c_str());       
         LogInfo("Tested Hardware information:\n");
         LogInfo("\tTested hardware device: %s\n", get_device_name_by_id(ocl.device).c_str());
-        printf("\tHardware version: %s\n", get_device_hardware_version_by_id(ocl.device).c_str());
+        LogInfo("\tHardware version: %s\n", get_device_hardware_version_by_id(ocl.device).c_str());
         LogInfo("\tSoftware version: %s\n", get_device_software_driver_version_by_id(ocl.device).c_str());
-        printf("\tOpenCL C version: %s\n", get_device_openclc_vers_by_id(ocl.device).c_str());
-        printf("\tParallel compute units: %d\n", get_device_nparalle_comp_units_by_id(ocl.device));
-    }
-    free(h_in_buf);
-    free(h_out_buf);
+        LogInfo("\tOpenCL C version: %s\n", get_device_openclc_vers_by_id(ocl.device).c_str());
+        LogInfo("\tParallel compute units: %d\n", get_device_nparalle_comp_units_by_id(ocl.device));
 
+        LogInfo("\tDevice max work-group: %d\n", get_device_max_work_group_size_by_id(ocl.device));
+        LogInfo("\tKernel work-group size: %d\n", get_kernel_work_group_size_by_id(ocl.device, ocl.kernel));
+    }
+    
     return 0;
 }

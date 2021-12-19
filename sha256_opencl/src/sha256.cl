@@ -13,10 +13,12 @@ typedef struct {
 #define shr32(x,n) ((x) >> (n))                   //+
 #define rotl32(a,n) rotate ((a), (n))             //+
 
-unsigned int SWAP (unsigned int val)//+
-{
-    return (rotate(((val) & 0x00FF00FF), 24U) | rotate(((val) & 0xFF00FF00), 8U));
-}
+#define SWAP(val) (rotate (val & 0x00FF00FF, 24U)|rotate(val & 0xFF00FF00, 8U))
+
+// unsigned int SWAP (unsigned int val)//+
+// {
+//     return (rotate(((val) & 0x00FF00FF), 24U) | rotate(((val) & 0xFF00FF00), 8U));
+// }
 
 #define SIGMA0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ shr32 ((x),  3u))//+
 #define SIGMA1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ shr32 ((x), 10u))//+

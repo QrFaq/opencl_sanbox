@@ -5,6 +5,12 @@ project(main)
 
 #set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "../${CMAKE_SOURCE_DIR}/")
 
+
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost 1.65.1 COMPONENTS program_options REQUIRED) 
+
 set(MAIN_DIR ${CMAKE_SOURCE_DIR}/..)
 set(DIR_LOAD_PROJ ${MAIN_DIR}/sha256_opencl_load_test)
 set(DIR_GPU_PROJ ${MAIN_DIR}/sha256_opencl)
@@ -16,6 +22,7 @@ include_directories(
 	${OPENCL_INCLUDE_DIR}
 	${DIR_GPU_PROJ}
 	${DIR_CPU_PROJ}
+	${Boost_INCLUDE_DIR}
 	)
 
 set(LOAD_PROJ_SRC_DIR ${DIR_LOAD_PROJ}/src)
@@ -30,5 +37,7 @@ set(SOURCES ${GPU_PROJ_SRC_DIR}/ocl_args.cpp
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations -w")
 
 # Set up executable
-add_executable (main ${SOURCES})
-target_link_libraries(main ${OPENCL_LIBRARIES} OpenCL)
+if(Boost_FOUND)
+	add_executable (main ${SOURCES})
+	target_link_libraries(main ${OPENCL_LIBRARIES} OpenCL ${Boost_LIBRARIES})
+endif()
