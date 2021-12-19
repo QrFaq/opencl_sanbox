@@ -130,3 +130,25 @@ Tested Hardware information:
 	OpenCL C version: OpenCL C 2.0 
 	Parallel compute units: 8
 ```
+
+```
+> Number of available platforms: 3
+> Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+> Found platform: Intel(R) OpenCL HD Graphics
+> Load test : start
+> Load test : end
+
+Test result information:
+	Loop kernal launch time: 10 [s]
+	Total CPU/GPU working duration: 9316.423828 [ms]
+	Kernel calculation time per batch: 81189.945312 [hash/s]
+	Total number of calculated hashes: 756400
+Selected processing platform:
+	Intel(R) OpenCL HD Graphics
+Tested Hardware information:
+	Tested hardware device: Intel(R) HD Graphics 630 [0x5912]
+	Hardware version: OpenCL 3.0 NEO 
+	Software version: 21.36.20889
+	OpenCL C version: OpenCL C 3.0 
+	Parallel compute units: 24
+```

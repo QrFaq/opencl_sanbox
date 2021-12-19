@@ -341,8 +341,8 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     unsigned int hash[32/4]={0};
     
     // copy to local memory
-    unsigned int length = inbuffer[idx].length;
-    __local unsigned int buffer[32/4];// = inbuffer[idx].buffer;
+    // unsigned int length = inbuffer[idx].length;
+    // __local unsigned int buffer[32/4];// = inbuffer[idx].buffer;
     // for (int i=0; i < length; i++)
     //   buffer[i] = inbuffer[idx].buffer[i];
     
@@ -359,7 +359,7 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     outbuffer[idx].buffer[5]=hash[5];
     outbuffer[idx].buffer[6]=hash[6];
     outbuffer[idx].buffer[7]=hash[7];
-    barrier(CLK_LOCAL_MEM_FENCE);
+    //barrier(CLK_LOCAL_MEM_FENCE);
     // for (int i=0; i < 8; i++)
     //   printf("outbuf[idx].buffer[i]==%08x\n", hash[i]);
 }

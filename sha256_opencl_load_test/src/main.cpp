@@ -20,6 +20,15 @@
 #include <random>
 #include <boost/format.hpp>
 
+typedef struct cl_s_inbuf {
+	cl_uint length;
+	cl_uint buffer[N_BUFFER_sz];
+};
+
+typedef struct cl_s_outbuf {
+	cl_uint buffer[N_BUFFER_sz];
+};
+
 std::string gen_random_str(const int len) {
     static const char alphanum[] =
         "0123456789"
@@ -42,7 +51,7 @@ std::string gen_random_str(const int len) {
     return tmp_s;
 }
 
-void generateInput(unsigned int* inputArray, unsigned int array_size, unsigned int seed)
+void generateInput(cl_uint* inputArray, unsigned int array_size, unsigned int seed)
 {
     srand(seed);
 
@@ -51,7 +60,7 @@ void generateInput(unsigned int* inputArray, unsigned int array_size, unsigned i
         inputArray[i] = rand() / 100;
 }
 
-void generateRandInputBatch(s_inbuf* batchArray, unsigned int batch_size, unsigned int seed)
+void generateRandInputBatch(cl_s_inbuf* batchArray, unsigned int batch_size, unsigned int seed)
 {
     // random initialization of input
     for (unsigned int i = 0; i < batch_size; ++i)
@@ -118,6 +127,7 @@ cl_uint get_device_nparalle_comp_units_by_id(cl_device_id device_id)
     return maxComputeUnits;
 }
 
+
 /*
     Test Kernel time measurement based on generated
     random strings of `MAX_STR_LENGTH_BYTES` size
@@ -129,8 +139,10 @@ cl_uint get_device_nparalle_comp_units_by_id(cl_device_id device_id)
 int main(int argc, char* argv[])
 {
     int64_t t_interval_s = 10;
-    const size_t gpu_batch_sz = 1;
-    cl_device_type deviceType = CL_DEVICE_TYPE_CPU;
+    const size_t gpu_batch_sz = 8;
+    size_t local_work_size = 1;//gpu_batch_sz;
+    size_t global_work_size = gpu_batch_sz;//local_work_size*3;
+    cl_device_type deviceType = CL_DEVICE_TYPE_GPU;
 
     ////
     // GPU configuration
@@ -144,8 +156,22 @@ int main(int argc, char* argv[])
         return -1;
     
     // host inputs
-    s_inbuf h_in_buf[gpu_batch_sz];     // place to store all generated hashes
-    s_outbuf h_out_buf[gpu_batch_sz];   // place to stor gpu batch
+    cl_uint in_optimizedSize = ((sizeof(cl_s_inbuf) * gpu_batch_sz - 1)/64 + 1) * 64;
+    cl_uint out_optimizedSize = ((sizeof(cl_s_outbuf) * gpu_batch_sz - 1)/64 + 1) * 64;
+    cl_s_inbuf* h_in_buf;//[gpu_batch_sz];     // place to store all generated hashes
+    cl_s_outbuf* h_out_buf;//[gpu_batch_sz];   // place to store gpu batch
+
+    if(posix_memalign((void**)&h_in_buf, 4096, in_optimizedSize) != 0)
+    {
+        LogError("Error: posix_memalign failed to allocate buffer.\n");
+        return -1;
+    }
+    if(posix_memalign((void**)&h_out_buf, 4096, out_optimizedSize) != 0)
+    {
+        LogError("Error: posix_memalign failed to allocate buffer.\n");
+        return -1;
+    }
+
 
     // Create and build the OpenCL program
     if (CL_SUCCESS != CreateAndBuildProgram(&ocl, (const char *)argv[1]))
@@ -161,14 +187,14 @@ int main(int argc, char* argv[])
     
     // create buffers
     ocl.in_buf = clCreateBuffer(ocl.context,  CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-        sizeof(s_inbuf) * gpu_batch_sz, h_in_buf, &err);
+        sizeof(cl_s_inbuf) * gpu_batch_sz, h_in_buf, &err);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clCreateBuffer for `ocl.in_length` returned %s\n", TranslateOpenCLError(err));
         return -1;
     }
     ocl.out_buf = clCreateBuffer(ocl.context,  CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-        sizeof(s_outbuf) * gpu_batch_sz, h_out_buf, &err);
+        sizeof(cl_s_outbuf) * gpu_batch_sz, h_out_buf, &err);
     if (CL_SUCCESS != err)
     {
         LogError("Error: clCreateBuffer for `ocl.out_buf` returned %s\n", TranslateOpenCLError(err));
@@ -196,6 +222,7 @@ int main(int argc, char* argv[])
         )
     {
         generateRandInputBatch(h_in_buf, gpu_batch_sz, loop_counter);
+        //LogInfo("> loop_counter=%d\n", loop_counter);
 
         // Start time point of kernel time measurement
         if (queueProfilingEnable)
@@ -217,9 +244,11 @@ int main(int argc, char* argv[])
 
         // Execute (enqueue) the kernel
         err = clEnqueueNDRangeKernel(
-            ocl.commandQueue, ocl.kernel, 1, NULL,
-            &gpu_batch_sz, NULL, 0, NULL, NULL
-            );
+            ocl.commandQueue, ocl.kernel, 1,
+            // *global_work_offset, *global_work_size, *local_work_size,
+            NULL, &global_work_size, &local_work_size,
+            0, NULL, NULL
+        );
         if (CL_SUCCESS != err)
         {
             LogError("Error: Failed to run kernel, return %s\n", TranslateOpenCLError(err));
@@ -251,7 +280,7 @@ int main(int argc, char* argv[])
     if (queueProfilingEnable)
     {
         LogInfo("\nTest result information:\n");
-        unsigned int total_numb_calc_hashes = loop_counter;//static_cast<unsigned int>(gpu_batch_sz) * loop_counter;
+        unsigned int total_numb_calc_hashes = static_cast<unsigned int>(gpu_batch_sz) * loop_counter;
         float avg_gpu_calc_time_ms = static_cast<float>(total_numb_calc_hashes) / total_gpu_calc_time;
         LogInfo("\tLoop kernal launch time: %d [s]\n", t_interval_s);
         LogInfo("\tTotal CPU/GPU working duration: %f [ms]\n", total_gpu_calc_time);
@@ -266,6 +295,8 @@ int main(int argc, char* argv[])
         printf("\tOpenCL C version: %s\n", get_device_openclc_vers_by_id(ocl.device).c_str());
         printf("\tParallel compute units: %d\n", get_device_nparalle_comp_units_by_id(ocl.device));
     }
+    free(h_in_buf);
+    free(h_out_buf);
 
     return 0;
 }
