@@ -110,6 +110,10 @@ make
 ./main </path/to>/sha256_opencl/src/sha256.cl
 ```
 
+Launch parameters:
+- t_interval_s = 10
+- gpu_batch_sz = 1
+- local_work_size = 1
 ```
 > Number of available platforms: 3
 > Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
@@ -131,6 +135,10 @@ Tested Hardware information:
 	Parallel compute units: 8
 ```
 
+Run parameters:
+- t_interval_s = 10
+- gpu_batch_sz = 8
+- local_work_size = 2
 ```
 > Number of available platforms: 3
 > Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
@@ -140,9 +148,63 @@ Tested Hardware information:
 
 Test result information:
 	Loop kernal launch time: 10 [s]
-	Total CPU/GPU working duration: 9316.423828 [ms]
-	Kernel calculation time per batch: 81189.945312 [hash/s]
-	Total number of calculated hashes: 756400
+	Total CPU/GPU working duration: 9410.205078 [ms]
+	Kernel calculation time per batch: 80557.648438 [hash/s]
+	Total number of calculated hashes: 758064
+Selected processing platform:
+	Intel(R) OpenCL HD Graphics
+Tested Hardware information:
+	Tested hardware device: Intel(R) HD Graphics 630 [0x5912]
+	Hardware version: OpenCL 3.0 NEO 
+	Software version: 21.36.20889
+	OpenCL C version: OpenCL C 3.0 
+	Parallel compute units: 24
+```
+
+### Speed up comparing with open source solution
+[sha 256 open source example](https://github.com/bkerler/opencl_brute/blob/master/Library/worker/generic/sha256.cl)
+
+Launch parameters:
+- t_interval_s = 10
+- gpu_batch_sz = 1
+- local_work_size = 1
+```
+> Number of available platforms: 3
+> Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+> Load test : start
+> Load test : end
+
+Test result information:
+	Loop kernal launch time: 10 [s]
+	Total CPU/GPU working duration: 8907.480469 [ms]
+	Kernel calculation time per batch: 113551.296875 [hash/s]
+	Total number of calculated hashes: 1011456
+Selected processing platform:
+	Intel(R) CPU Runtime for OpenCL(TM) Applications
+Tested Hardware information:
+	Tested hardware device: Intel(R) Core(TM) i7-7700K CPU @ 4.20GHz
+	Hardware version: OpenCL 2.1 (Build 0)
+	Software version: 18.1.0.0920
+	OpenCL C version: OpenCL C 2.0 
+	Parallel compute units: 8
+
+> Number of available platforms: 3
+> Found platform: Intel(R) CPU Runtime for OpenCL(TM) Applications
+> Found platform: Intel(R) OpenCL HD Graphics
+> Load test : start
+> Load test : end
+```
+
+Run parameters:
+- t_interval_s = 10
+- gpu_batch_sz = 8
+- local_work_size = 2
+```
+Test result information:
+	Loop kernal launch time: 10 [s]
+	Total CPU/GPU working duration: 9396.073242 [ms]
+	Kernel calculation time per batch: 81760.109375 [hash/s]
+	Total number of calculated hashes: 768224
 Selected processing platform:
 	Intel(R) OpenCL HD Graphics
 Tested Hardware information:
