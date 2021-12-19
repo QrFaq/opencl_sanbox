@@ -139,11 +139,11 @@ make
 
 ##### Result Speed graph
 
-![heat_map](https://user-images.githubusercontent.com/22077241/146688763-b0ec4346-ff6a-4bad-8a09-07616bb26550.png)
+![speed](https://user-images.githubusercontent.com/22077241/146688770-96658d50-f755-4124-b785-5eea4ddbe5d8.png)
 
 ##### Result Heat-map graph
 
-![speed](https://user-images.githubusercontent.com/22077241/146688770-96658d50-f755-4124-b785-5eea4ddbe5d8.png)
+![heat_map](https://user-images.githubusercontent.com/22077241/146688763-b0ec4346-ff6a-4bad-8a09-07616bb26550.png)
 
 ##### Additional output
 
