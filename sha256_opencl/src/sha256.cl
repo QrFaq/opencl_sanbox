@@ -7,6 +7,20 @@ typedef struct {
 	unsigned int buffer[32/4];
 } outbuf;
 
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+
+
+
+
 #define CH(x,y,z)   (bitselect(z,y,x))            //+
 #define MAJ(x,y,z)   (bitselect (x, y, (x ^ z)))  //+
 #define mod(x,y) x - (x/y * y)                    //+
@@ -15,10 +29,6 @@ typedef struct {
 
 #define SWAP(val) (rotate (val & 0x00FF00FF, 24U)|rotate(val & 0xFF00FF00, 8U))
 
-// unsigned int SWAP (unsigned int val)//+
-// {
-//     return (rotate(((val) & 0x00FF00FF), 24U) | rotate(((val) & 0xFF00FF00), 8U));
-// }
 
 #define SIGMA0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ shr32 ((x),  3u))//+
 #define SIGMA1(x) (rotl32 ((x), 15u) ^ rotl32 ((x), 13u) ^ shr32 ((x), 10u))//+
@@ -235,14 +245,46 @@ static void sha256_process2 (const unsigned int *W, unsigned int *digest)
 static void sha256(__global const unsigned int *pass, int pass_len, unsigned int* hash)
 // static void sha256(__local const unsigned int *pass, int pass_len, unsigned int* hash)
 {
-    int plen=pass_len/4;
-    if (mod(pass_len, 4)) plen++;
+    printf("> pass_len=%d\n", pass_len);
+    int num32Words = pass_len/4;
+    if (mod(pass_len, 4)) // number of full 32-bit M-words
+      num32Words++;
+
+    printf("> num32Words=%d\n", num32Words);
+    
+    // calculate padding bytes
+    int numMsgBlocks = 1;//pass_len/64 + 1;
+    // (N msg-bytes + 1 + 64-bit Msg length)/64
+    // +1: cause 1bit shall be placed, but the data
+    //      discretization step is 1-byte (1-hex)
+    int numMsgBlocks_DEBUG = (pass_len + 8)/64;
+    if (mod(pass_len, 64) == 0) // number of full 32-bit M-words
+      numMsgBlocks_DEBUG++;
+
+    int left3dWords_totalBlocks = numMsgBlocks_DEBUG * 16;
+
+
+    int num32WordsTotal = numMsgBlocks * 16;
+    int pad32Words = num32WordsTotal - num32Words;
+    printf("> [DEBUG] numMsgBlocks_DEBUG =%d\n", numMsgBlocks_DEBUG);
+    printf("> numMsgBlocks=%d\n", numMsgBlocks);
+    printf("> num32WordsTotal=%d\n", num32WordsTotal);
+    printf("> pad32Words=%d\n", pad32Words);
+
+    /*
+    if <= 55-byte -> OK == add 1 + write Length to the end
+    if < 64-byte -> add 1 + {write Length} to another MSG
+    if <=64-byte -> {add 1 + write Length} to another MSG
+    */
+
+
+    //int msg_len_bytes = pass_len/4;
+    int nleft_32Words = num32Words;
+    // int nleft_bytes_pad = 
 
     unsigned int* p = hash;
-
     unsigned int W[0x10]={0};
-    int loops = plen;
-    int curloop = 0;
+
     unsigned int State[8]={0};
     State[0] = 0x6a09e667;//+
     State[1] = 0xbb67ae85;//+
@@ -253,8 +295,11 @@ static void sha256(__global const unsigned int *pass, int pass_len, unsigned int
     State[6] = 0x1f83d9ab;//+
     State[7] = 0x5be0cd19;//+
 
-    while (loops>0)
+    bool byteWasPlaced = false;
+    while (nleft_32Words > 0 || left3dWords_totalBlocks > 0)//|| !byteWasPlaced)// || pad32Words > 0)
     {
+        left3dWords_totalBlocks-=16;
+        printf("\n> nleft_32Words:%d, left3dWords_totalBlocks=%d\n", nleft_32Words, left3dWords_totalBlocks);
         W[0x0]=0x0;
         W[0x1]=0x0;
         W[0x2]=0x0;
@@ -274,30 +319,57 @@ static void sha256(__global const unsigned int *pass, int pass_len, unsigned int
 
 
         // fill t=0..15 as M<t, i>
-        for (int m=0;loops!=0 && m<16;m++)
+        printf("> [Read msg] : START\n");
+        for (int m=0; nleft_32Words >= 0 && m<16 ;m++)
         {
-            W[m]^=SWAP(pass[m+(curloop*16)]);
-            loops--;
+            // printf("> %8x ");
+            W[m]^=SWAP(pass[num32Words - nleft_32Words]);
+            // printf("> W[%2d]=%8x, msg_ind=%d\n", m, W[m], num32Words - nleft_32Words);
+            nleft_32Words--;
+        }
+        printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+        printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+        printf("> [Read msg] : END, nleft_32Words=%d\n", nleft_32Words);
+
+        // add 1
+        if (nleft_32Words < 0 && !byteWasPlaced)// && mod(pass_len, 64)!=0
+        {
+            unsigned int bit_shift = (pass_len - pass_len/4 * 4) * 8;
+            printf("> bit shift=%d [B]\n", bit_shift/8 );
+            // unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
+            unsigned int padding = 0x80 << bit_shift;//?
+            printf("> bit shift=%08x\n", padding );
+            printf("> bit swap =%08x\n", SWAP(padding) );
+            int v = mod(pass_len, 64);
+
+            printf("> Before pad:\n");
+            printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+            printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+
+            W[v/4] |= SWAP(padding);
+
+            // It work only for uint length strings
+            //W[0x0F] = pass_len * 8;//add length to the end of the message
+
+            printf("> After pad:\n");
+            printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+            printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+            byteWasPlaced = true;
+        }
+
+        printf("\n> [DEBUG] left3dWords_totalBlocks=%d\n", left3dWords_totalBlocks);
+        if (left3dWords_totalBlocks< 0)
+        {
+          W[0x0F] = pass_len * 8;
+          printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+          printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
         }
 
         // fill t=16..63 as M<t, i>
-        if (loops==0 && mod(pass_len,64)!=0)
-        {
-            unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
-            int v = mod(pass_len,64);
-            W[v/4] |= SWAP(padding);
-            if ((pass_len & 0x3B) != 0x3B)
-            {
-                // Let's add length
-                W[0x0F] = pass_len * 8;
-            }
-        }
-
         sha256_process2(W, State);//state == h
-        curloop++;
     }
 
-    if (mod(plen, 16)==0)
+    /*if (mod(num32Words, 16)==0)
     {
         W[0x0]=0x0;
         W[0x1]=0x0;
@@ -317,14 +389,14 @@ static void sha256(__global const unsigned int *pass, int pass_len, unsigned int
         W[0xF]=0x0;
         if ((pass_len & 0x3B) != 0x3B)
         {
-            unsigned int padding = 0x80 << (((pass_len + 4) - ((pass_len + 4)/4 * 4)) * 8);
+            unsigned int padding = 0x10 << (pass_len - pass_len/4 * 4) * 8;
             W[0] |= SWAP(padding);
         }
         // Let's add length
         W[0x0F] = pass_len * 8;
 
         sha256_process2(W,State);
-    }
+    }*/
 
     p[0]=SWAP(State[0]);
     p[1]=SWAP(State[1]);
@@ -340,7 +412,7 @@ static void sha256(__global const unsigned int *pass, int pass_len, unsigned int
 __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * outbuffer)
 {
     unsigned int idx = get_global_id(0);
-    unsigned int hash[32/4]={0};
+    unsigned int hash[8]={0};
     
     // copy to local memory
     // unsigned int length = inbuffer[idx].length;
@@ -353,6 +425,8 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     
     // sha256(buffer, length, hash);
     sha256(inbuffer[idx].buffer, inbuffer[idx].length, hash);
+    printf("H[%d]: H0=%08x H1=%08x H2=%08x H3=%08x H4=%08x H5=%08x H6=%08x H7=%08x\n\n\n", idx, hash[0],hash[1],hash[2],hash[3],hash[4],hash[5],hash[6],hash[7]);
+
     outbuffer[idx].buffer[0]=hash[0];
     outbuffer[idx].buffer[1]=hash[1];
     outbuffer[idx].buffer[2]=hash[2];
@@ -363,5 +437,5 @@ __kernel void func_sha256(__global const inbuf * inbuffer, __global outbuf * out
     outbuffer[idx].buffer[7]=hash[7];
     //barrier(CLK_LOCAL_MEM_FENCE);
     // for (int i=0; i < 8; i++)
-    //   printf("outbuf[idx].buffer[i]==%08x\n", hash[i]);
+    //     printf("outbuf[%d].buffer[i]==%08x\n", idx, hash[i]);
 }
