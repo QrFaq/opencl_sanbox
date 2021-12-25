@@ -28,7 +28,6 @@ std::string convert_int(int n)
    return ss.str();
 }
 
-
 std::string gen_random_str(const int len) {
     static const char alphanum[] =
         "0123456789"
@@ -98,8 +97,8 @@ int main(int argc, char* argv[])
     ////
     // Hash configuraions
     ////
-    const unsigned int n_hashes = 5;                // cpu
-    const size_t gen_str_len = 32;
+    const unsigned int n_hashes = 10;                // cpu
+    const size_t gen_str_len = MAX_STR_LENGTH_BYTES;// parameter shall be setted in sha256_opencl.h
     const size_t n_hashes_gpu_process = n_hashes;   // gpu
     
     std::string res_table_str[n_hashes * 2][4];
@@ -162,15 +161,16 @@ int main(int argc, char* argv[])
     {
         // generate string
         auto message_str = gen_random_str(gen_str_len);
-        //const char* message = "test_str";
-        //std::string message_str(message);
+        // const char* message_debug = "123456789123456789123456789123456789123456789123";//"1234567891234567891234567891234567891234567891234567891";//"1RYFEhBZ6fcl1jqo48PYbMezcF1sieGdKtxsL7RYqCuSzXTu";//"test_str";
+        // std::string message_str(message_debug);
+
+
         input_messages.push_back(message_str);
-
-
         const char * message = input_messages[hash_ind].c_str();
         LogInfo("> CPU/GPU In-msg[%2i] (0.2hex):`", hash_ind);
         for (int i = 0; i < std::strlen(message); i++)
         {
+            if (i%4==0 && i!=0) LogInfo(" ");
             LogInfo("%02x", message[i]);
             oss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(message[i]);
         }
@@ -190,6 +190,7 @@ int main(int argc, char* argv[])
     for (unsigned int hash_ind=0; hash_ind < n_hashes; hash_ind++)
     {
         const char * message = input_messages[hash_ind].c_str();
+        
         ////
         // Calculate hash with CPU
         // & time the code
@@ -279,8 +280,9 @@ int main(int argc, char* argv[])
         gettimeofday(&performanceCountNDRangeStart, NULL);
 
     // Execute (enqueue) the kernel
-
     err = clEnqueueNDRangeKernel(ocl.commandQueue, ocl.kernel, 1, NULL, &n_hashes_gpu_process, NULL, 0, NULL, &ev[1]);
+    // size_t local_sz[1] = {1};
+    // err = clEnqueueNDRangeKernel(ocl.commandQueue, ocl.kernel, 1, NULL, &n_hashes_gpu_process, local_sz, 0, NULL, &ev[1]);
     clRetainKernel(ocl.kernel);
     if (CL_SUCCESS != err)
     {
@@ -329,7 +331,7 @@ int main(int argc, char* argv[])
     {
         LogInfo("> Hash string GPU[%i]:`", hash_ind);
         h_in_buf[hash_ind].length = n_hashes_gpu_process;
-        for (int ind = 0; ind < N_BUFFER_sz; ind++)
+        for (int ind = 0; ind < 8; ind++)
         {   
             unsigned int little_end = //h_out_buf[hash_ind].buffer[ind];
                 ((h_out_buf[hash_ind].buffer[ind]>>24)&0xff) |

@@ -131,7 +131,7 @@ cl_uint get_device_nparalle_comp_units_by_id(cl_device_id device_id)
 
 cl_uint get_device_max_work_group_size_by_id(cl_device_id device_id)
 {
-    cl_uint maxWorkGroupSz;
+    size_t maxWorkGroupSz;
     clGetDeviceInfo(device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE,
             sizeof(maxWorkGroupSz), &maxWorkGroupSz, NULL);
     return maxWorkGroupSz;
@@ -139,7 +139,7 @@ cl_uint get_device_max_work_group_size_by_id(cl_device_id device_id)
 
 cl_uint get_kernel_work_group_size_by_id(cl_device_id device, cl_kernel kernel)
 {
-    cl_uint maxKernelWorkGroupSz;
+    size_t maxKernelWorkGroupSz;
     clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE,
             sizeof(maxKernelWorkGroupSz), &maxKernelWorkGroupSz, NULL);
     return maxKernelWorkGroupSz;

@@ -1,15 +1,20 @@
 #include "3rd_parties/utils.h"
 
-#define MAX_STR_LENGTH_BYTES 32             // max size of the input string
-#define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4  // max number of unsigned int 
+#define MAX_STR_LENGTH_BYTES 48             // max size of the input string
+
+#if MAX_STR_LENGTH_BYTES%4 > 0
+    #define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4 + 1  // max number of unsigned int 
+#else
+    #define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4
+#endif
 
 typedef struct s_inbuf {
-	unsigned int length;
-	unsigned int buffer[N_BUFFER_sz];
+	uint32_t length;
+	uint32_t buffer[N_BUFFER_sz];
 };
 
 typedef struct s_outbuf {
-	unsigned int buffer[N_BUFFER_sz];
+	uint32_t buffer[8];//hash is always 8-bytes
 };
 
 // typedef struct s_inbuf_cl {

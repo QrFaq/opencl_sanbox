@@ -1,4 +1,5 @@
 #include "sha256_cpu.h"
+#include <stdio.h>
 
 /*
     w, word-length = 32 (SHA256_CPU)
@@ -61,7 +62,7 @@ void SHA256_CPU::process_block(uint8_t* block)
 {
     bool isTime2placeBit =
         (SHA256_CPU::blocks_number - SHA256_CPU::remainig_blocks_n) * 64 > SHA256_CPU::msg_length &&
-        !bit_placed;
+        !SHA256_CPU::bit_placed;
     if (isTime2placeBit)
     {
         block[SHA256_CPU::msg_length % 64] = 0x80;
@@ -91,6 +92,8 @@ void SHA256_CPU::process_block(uint8_t* block)
         w[t] = __builtin_bswap32(*pM);
         pM++;
     }
+    printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", w[0x0], w[0x1], w[0x2], w[0x3], w[0x4], w[0x5], w[0x6], w[0x7]);
+    printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", w[0x8], w[0x9], w[0xA], w[0xB], w[0xC], w[0xD], w[0xE], w[0xF]);
 
     // fill t=16..63 as M<t, i>
     for (size_t t = 16; t < 64; t++)

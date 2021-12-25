@@ -42,8 +42,8 @@ int main(int argc, char* argv[])
     // init host data, example
     for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
     {
-        LogInfo("> Input string (hash %i):`", ind_hash);
-        h_in_buf[ind_hash].length = 32;// N bytes
+        h_in_buf[ind_hash].length = MAX_STR_LENGTH_BYTES;// N bytes
+        LogInfo("> Input string (hash %i), len=%d:`", ind_hash, h_in_buf[ind_hash].length);
         for (size_t ind = 0; ind < N_BUFFER_sz; ind++)
         {
             h_in_buf[ind_hash].buffer[ind] = 0x61616161;//write 'aaaa'
@@ -151,9 +151,9 @@ int main(int argc, char* argv[])
     {
         LogInfo("> Hash string:`");
         h_in_buf[ind_hash].length = n_hashes;
-        for (int ind = 0; ind < N_BUFFER_sz; ind++)
+        for (int ind = 0; ind < 8; ind++)
         {   
-            unsigned int little_end = //h_out_buf[ind_hash].buffer[ind];
+            uint32_t little_end = //h_out_buf[ind_hash].buffer[ind];
                 ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
                 ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
                 ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |

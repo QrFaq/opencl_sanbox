@@ -11,7 +11,8 @@ g++ main.cpp sha256_cpu.cpp -o main
 
 int main(int argc, char** argv)
 {   //<=5<=7 works 
-    const char* message = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";//"1234567891234567891234567891234567891234567891234567891";//works only for 56 symbols
+    //const char* message = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";//"1234567891234567891234567891234567891234567891234567891";//works only for 56 symbols
+    const char* message = "1RYFEhBZ6fcl1jqo48PYbMezcF1sieGdKtxsL7RYqCuSzXTu";
 
     const uint8_t nbytes = 32;
     uint8_t* hash = new uint8_t[nbytes];  // == 256 [bits]
