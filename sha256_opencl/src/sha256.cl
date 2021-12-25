@@ -244,19 +244,21 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     // (N msg-bytes + 1 + 64-bit Msg length)/64
     // +1: cause 1bit shall be placed, but the data
     //      discretization step is 1-byte (1-hex)
-    int numMsgBlocks_DEBUG = (pass_len + 8)/64;
-    if (mod(pass_len, 64) == 0) // number of full 32-bit M-words
-      numMsgBlocks_DEBUG++;
+    int numMsgBlocks_DEBUG = (pass_len + 8)/64 + 1;
+
+    // 56 B, cause 56 B = 55 B (Msg) + 1 B (1-splitter)
+    // 52-55 B (msg) + 1 B (1-splitter)
+    // if (mod(pass_len, 56) < 9) 
+    //   numMsgBlocks_DEBUG++;// number of full 32-bit M-words
 
     int left3dWords_totalBlocks = numMsgBlocks_DEBUG * 16;
 
 
     // int num32WordsTotal = numMsgBlocks * 16;
     // int pad32Words = num32WordsTotal - num32Words;
-    // printf("> [DEBUG] numMsgBlocks_DEBUG =%d\n", numMsgBlocks_DEBUG);
-    // printf("> numMsgBlocks=%d\n", numMsgBlocks);
-    // printf("> num32WordsTotal=%d\n", num32WordsTotal);
     // printf("> pad32Words=%d\n", pad32Words);
+    // printf("> num32WordsTotal=%d\n", num32WordsTotal);
+    printf("> [DEBUG] numMsgBlocks_DEBUG =%d\n", numMsgBlocks_DEBUG);
 
     /*
     if <= 55-byte -> OK == add 1 + write Length to the end
@@ -291,7 +293,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     while (nleft_32Words > 0 || left3dWords_totalBlocks > 0)//|| !byteWasPlaced)// || pad32Words > 0)
     {
         left3dWords_totalBlocks-=16;
-        // printf("\n> nleft_32Words:%d, left3dWords_totalBlocks=%d\n", nleft_32Words, left3dWords_totalBlocks);
+        printf("\n> nleft_32Words:%d, left3dWords_totalBlocks=%d\n", nleft_32Words, left3dWords_totalBlocks);
         W[0x0]=0x0;
         W[0x1]=0x0;
         W[0x2]=0x0;
@@ -317,7 +319,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
         for (int m=0; nleft_32Words > 0 && m<16 ;m++)
         {
             // printf("> %8x ");
-            W[m]^=SWAP(pass[num32Words - nleft_32Words]);
+            W[m]^=pass[num32Words - nleft_32Words];//SWAP(pass[num32Words - nleft_32Words]);
             printf("> W[%2d]=%8x, num32Words=%i, nleft_32Words=%i, msg_ind=%d\n", m, W[m], num32Words,nleft_32Words, num32Words - nleft_32Words);
             nleft_32Words--;
         }
@@ -332,13 +334,17 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
         // add 1
         if (nleft_32Words < 1 && !byteWasPlaced)// && mod(pass_len, 64)!=0
         {
-            unsigned int bit_shift = (pass_len - pass_len/4 * 4) * 8;
+            uint bit_shift = 32 - (pass_len - pass_len/4 * 4) * 8;
             // printf("> bit shift=%d [B]\n", bit_shift/8 );
             ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
-            unsigned int padding = 0x80 << bit_shift;//?
-            int v = mod(num32Words, 16);
-            printf("> [sha256:%d] bit shift=%08x in v=%i\n", idx, padding, v );
-            printf("> [sha256:%d] bit swap =%08x in v=%i\n", idx, SWAP(padding), v );
+            uint padding = 0x80 << bit_shift;//?
+            // uint padding = 0x200 >> bit_shift;//?
+
+            printf("> [sha256:%d] bit_shift=%d, padding=%d\n", idx, bit_shift, padding);
+            // uint v = mod( (num32Words-1), 16);// PRoblem if 48
+            uint v = mod( num32Words, 16);
+            printf("> [sha256:%d] bit shift=%08x in v=%i, num32Words=%d\n", idx, padding, v, num32Words);
+            printf("> [sha256:%d] bit swap =%8x in v=%i\n", idx, SWAP(padding), v );
 
             // printf("> Before pad:\n");
             // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
@@ -346,7 +352,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
 
             // W[v/4] |= SWAP(padding);
             printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
-            W[v] |= SWAP(padding);
+            W[v] |= SWAP(padding);//padding;//
 
 
             // printf("> After pad:\n");
@@ -356,7 +362,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
         }
 
         // printf("\n> [DEBUG] left3dWords_totalBlocks=%d\n", left3dWords_totalBlocks);
-        if (left3dWords_totalBlocks< 0)
+        if (left3dWords_totalBlocks<= 0)
         {
           W[0x0F] = pass_len * 8;
           // printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
@@ -382,48 +388,28 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     }
     printf("> [sha256:%d] loop end\n", idx);
 
-    /*if (mod(num32Words, 16)==0)
-    {
-        W[0x0]=0x0;
-        W[0x1]=0x0;
-        W[0x2]=0x0;
-        W[0x3]=0x0;
-        W[0x4]=0x0;
-        W[0x5]=0x0;
-        W[0x6]=0x0;
-        W[0x7]=0x0;
-        W[0x8]=0x0;
-        W[0x9]=0x0;
-        W[0xA]=0x0;
-        W[0xB]=0x0;
-        W[0xC]=0x0;
-        W[0xD]=0x0;
-        W[0xE]=0x0;
-        W[0xF]=0x0;
-        if ((pass_len & 0x3B) != 0x3B)
-        {
-            unsigned int padding = 0x10 << (pass_len - pass_len/4 * 4) * 8;
-            W[0] |= SWAP(padding);
-        }
-        // Let's add length
-        W[0x0F] = pass_len * 8;
-
-        sha256_process2(W,State);
-    }*/
     printf("> [sha256:%d] debug_loop_counter=%d\n", idx, debug_loop_counter);
 
     printf(
       "> [sha256:%d] H: p0=%08x p1=%08x p2=%08x p3=%08x p4=%08x p5=%08x p6=%08x p7=%08x\n",
       idx, State[0],State[1],State[2],State[3],State[4],State[5],State[6],State[7]
     );
-    p[0]=SWAP(State[0]);
-    p[1]=SWAP(State[1]);
-    p[2]=SWAP(State[2]);
-    p[3]=SWAP(State[3]);
-    p[4]=SWAP(State[4]);
-    p[5]=SWAP(State[5]);
-    p[6]=SWAP(State[6]);
-    p[7]=SWAP(State[7]);
+    // p[0]=SWAP(State[0]);
+    // p[1]=SWAP(State[1]);
+    // p[2]=SWAP(State[2]);
+    // p[3]=SWAP(State[3]);
+    // p[4]=SWAP(State[4]);
+    // p[5]=SWAP(State[5]);
+    // p[6]=SWAP(State[6]);
+    // p[7]=SWAP(State[7]);
+    p[0]=State[0];
+    p[1]=State[1];
+    p[2]=State[2];
+    p[3]=State[3];
+    p[4]=State[4];
+    p[5]=State[5];
+    p[6]=State[6];
+    p[7]=State[7];
 
     return;
 }

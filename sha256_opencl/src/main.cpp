@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     ////
     // host inputs
     ////
-    const size_t n_hashes = 2;
+    const size_t n_hashes = 1;
     // unsigned int buffer[N_BUFFER_sz];
     s_inbuf h_in_buf[n_hashes];// = h_inbuf[];// = {1}
     s_outbuf h_out_buf[n_hashes];
@@ -43,12 +43,26 @@ int main(int argc, char* argv[])
     for (int ind_hash = 0; ind_hash < n_hashes; ind_hash++)
     {
         h_in_buf[ind_hash].length = MAX_STR_LENGTH_BYTES;// N bytes
-        LogInfo("> Input string (hash %i), len=%d:`", ind_hash, h_in_buf[ind_hash].length);
-        for (size_t ind = 0; ind < N_BUFFER_sz; ind++)
-        {
-            h_in_buf[ind_hash].buffer[ind] = 0x61616161;//write 'aaaa'
+        LogInfo("> Input string (hash %i), len=%d:\n`", ind_hash, h_in_buf[ind_hash].length);
+        for (size_t ind = 0; ind < MAX_STR_LENGTH_BYTES; ind+=4)
+        {   
+            h_in_buf[ind_hash].buffer[ind/4] = 0;
+            //write 'aaaa'
+            if (ind + 0 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x61000000;
+            if (ind + 1 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00610000;
+            if (ind + 2 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00006100;
+            if (ind + 3 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00000061;
             //h_out_buf[n_hashes].buffer[ind] = 0xffffffff;
-            LogInfo("%c", h_in_buf[ind_hash].buffer[ind]);
+            LogInfo(
+                "%d, %c, %8x \n",
+                ind/4,
+                h_in_buf[ind_hash].buffer[ind/4],
+                h_in_buf[ind_hash].buffer[ind/4]
+            );
         }
         LogInfo("`\n");
     }
@@ -153,11 +167,11 @@ int main(int argc, char* argv[])
         h_in_buf[ind_hash].length = n_hashes;
         for (int ind = 0; ind < 8; ind++)
         {   
-            uint32_t little_end = //h_out_buf[ind_hash].buffer[ind];
-                ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
-                ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
-                ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |
-                ((h_out_buf[ind_hash].buffer[ind]<<24)&0xff000000);
+            uint32_t little_end = h_out_buf[ind_hash].buffer[ind];
+                // ((h_out_buf[ind_hash].buffer[ind]>>24)&0xff) |
+                // ((h_out_buf[ind_hash].buffer[ind]<<8)&0xff0000) |
+                // ((h_out_buf[ind_hash].buffer[ind]>>8)&0xff00) |
+                // ((h_out_buf[ind_hash].buffer[ind]<<24)&0xff000000);
             unsigned char bytes[4] = {
                 (little_end >> 24) & 0xFF,
                 (little_end >> 16) & 0xFF,
