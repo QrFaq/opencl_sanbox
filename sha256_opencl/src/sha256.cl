@@ -321,17 +321,32 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
 
         // fill t=0..15 as M<t, i>
         // printf("> [Read msg] : START\n");
-        for (int m=0; nleft_32Words > 0 && m<16 ;m++)
-        {
-            // printf("> %8x ");
-            W[m]^=pass[num32Words - nleft_32Words];//SWAP(pass[num32Words - nleft_32Words]);
-            // printf("> W[%2d]=%8x, num32Words=%i, nleft_32Words=%i, msg_ind=%d\n", m, W[m], num32Words,nleft_32Words, num32Words - nleft_32Words);
-            nleft_32Words--;
-        }
+        // for (int m=0; nleft_32Words > 0 && m<16 ;m++)
+        // {
+        //     // printf("> %8x ");
+        //     W[m]^=pass[num32Words - nleft_32Words];//SWAP(pass[num32Words - nleft_32Words]);
+        //     // printf("> W[%2d]=%8x, num32Words=%i, nleft_32Words=%i, msg_ind=%d\n", m, W[m], num32Words,nleft_32Words, num32Words - nleft_32Words);
+        //     nleft_32Words--;
+        // }
+        if (nleft_32Words > 0){W[0x0]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x1]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x2]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x3]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x4]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x5]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x6]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x7]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x8]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0x9]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xA]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xB]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xC]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xD]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xE]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
+        if (nleft_32Words > 0){W[0xF]^=pass[num32Words - nleft_32Words];nleft_32Words--;}
         // printf("> [sha256:%d]       FORLOOP W[0]:%8x W[1]:%8x W[ 2]:%8x W[ 3]:%8x W[ 4]:%8x W[ 5]:%8x W[ 6]:%8x W[ 7]:%8x\n", idx, W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
         // printf("> [sha256:%d]       FORLOOP W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n",idx, W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
         
-
         // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
         // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
         // printf("> [Read msg] : END, nleft_32Words=%d\n", nleft_32Words);
