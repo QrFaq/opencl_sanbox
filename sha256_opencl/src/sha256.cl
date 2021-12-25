@@ -1,4 +1,4 @@
-#define MAX_STR_LENGTH_BYTES 56             // max size of the input string
+#define MAX_STR_LENGTH_BYTES 123             // max size of the input string
 
 #if MAX_STR_LENGTH_BYTES%4 > 0
     #define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4 + 1  // max number of unsigned int 
@@ -290,6 +290,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     );
     uint debug_loop_counter = 0;
     bool byteWasPlaced = false;
+    bool placeByteForwardMsg = false;
     while (nleft_32Words > 0 || left3dWords_totalBlocks > 0)//|| !byteWasPlaced)// || pad32Words > 0)
     {
         left3dWords_totalBlocks-=16;
@@ -323,45 +324,70 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
             printf("> W[%2d]=%8x, num32Words=%i, nleft_32Words=%i, msg_ind=%d\n", m, W[m], num32Words,nleft_32Words, num32Words - nleft_32Words);
             nleft_32Words--;
         }
-        printf("> [sha256:%d] FORLOOP W[0]:%8x W[1]:%8x W[ 2]:%8x W[ 3]:%8x W[ 4]:%8x W[ 5]:%8x W[ 6]:%8x W[ 7]:%8x\n", idx, W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
-        printf("> [sha256:%d] FORLOOP W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n",idx, W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+        printf("> [sha256:%d]       FORLOOP W[0]:%8x W[1]:%8x W[ 2]:%8x W[ 3]:%8x W[ 4]:%8x W[ 5]:%8x W[ 6]:%8x W[ 7]:%8x\n", idx, W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+        printf("> [sha256:%d]       FORLOOP W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n",idx, W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
         
 
         // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
         // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
         // printf("> [Read msg] : END, nleft_32Words=%d\n", nleft_32Words);
 
-        // add 1
+        // add 1 // && left3dWords_totalBlocks==0
         if (nleft_32Words < 1 && !byteWasPlaced)// && mod(pass_len, 64)!=0
         {
-            uint bit_shift = (pass_len - pass_len/4 * 4) * 8;//32 - (pass_len - pass_len/4 * 4) * 8;
-            // printf("> bit shift=%d [B]\n", bit_shift/8 );
-            ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
-            uint padding = 0x80000000 >> bit_shift;//?
-            // uint padding = 0x200 >> bit_shift;//?
-
-            printf("> [sha256:%d] bit_shift=%d, padding=%d, %i\n", idx, bit_shift, padding, (pass_len - pass_len/4 * 4) * 8 );
             uint v = mod( (num32Words-1), 16);// PRoblem if 48
             if (mod(pass_len, 4)==0)
               v++;
+            if (v==16)
+            {
+              placeByteForwardMsg=true;
+            } else {
+              uint bit_shift = (pass_len - pass_len/4 * 4) * 8;//32 - (pass_len - pass_len/4 * 4) * 8;
+              // printf("> bit shift=%d [B]\n", bit_shift/8 );
+              ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
+              uint padding = 0x80000000 >> bit_shift;//?
+              // uint padding = 0x200 >> bit_shift;//?
 
-            // uint v = mod( num32Words, 16);
-            printf("> [sha256:%d] bit shift=%08x in v=%i, num32Words=%d\n", idx, padding, v, num32Words);
-            // printf("> [sha256:%d] bit swap =%8x in v=%i\n", idx, SWAP(padding), v );
+              printf("> [sha256:%d] bit_shift=%d, padding=%d, %i\n", idx, bit_shift, padding, (pass_len - pass_len/4 * 4) * 8 );
+              // uint v = mod( num32Words, 16);
+              printf("> [sha256:%d] bit shift=%08x in v=%i, num32Words=%d\n", idx, padding, v, num32Words);
+              // printf("> [sha256:%d] bit swap =%8x in v=%i\n", idx, SWAP(padding), v );
 
-            // printf("> Before pad:\n");
-            // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
-            // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+              // printf("> Before pad:\n");
+              // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+              // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
 
-            // W[v/4] |= SWAP(padding);
-            printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
-            W[v] |= padding;//SWAP(padding);//padding;//
+              // W[v/4] |= SWAP(padding);
+              printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
+              W[v] |= padding;//SWAP(padding);//padding;//
 
 
-            // printf("> After pad:\n");
-            // printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
-            // printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
-            byteWasPlaced = true;
+              // printf("> After pad:\n");
+              // printf(">   W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
+              // printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
+              byteWasPlaced = true;
+            }
+            if (placeByteForwardMsg)
+            {
+              // TODO: how to fill padded message if it's mod(, 64)==0?
+              W[0x0] = 0x10101010;//0x80000000;
+              W[0x1] = 0x10101010;// TODO: what to do with a standard??
+              W[0x2] = 0x10101010;
+              W[0x3] = 0x10101010;
+              W[0x4] = 0x10101010;
+              W[0x5] = 0x10101010;
+              W[0x6] = 0x10101010;
+              W[0x7] = 0x10101010;
+              W[0x8] = 0x10101010;
+              W[0x9] = 0x10101010;
+              W[0xA] = 0x10101010;
+              W[0xB] = 0x10101010;
+              W[0xC] = 0x10101010;
+              W[0xD] = 0x10101010;
+              // W[0xE] = 0x10101010;
+              // W[0xF] = 0x10101010;
+            }
+
         }
 
         // printf("\n> [DEBUG] left3dWords_totalBlocks=%d\n", left3dWords_totalBlocks);
