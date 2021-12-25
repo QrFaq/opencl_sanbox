@@ -13,7 +13,7 @@
 #define shr32(x,n) ((x) >> (n))                   //+
 #define rotl32(a,n) rotate ((a), (n))             //+
 
-#define SWAP(val) (rotate (val & 0x00FF00FF, 24U)|rotate(val & 0xFF00FF00, 8U))
+// #define SWAP(val) (rotate (val & 0x00FF00FF, 24U)|rotate(val & 0xFF00FF00, 8U))
 
 
 #define SIGMA0(x) (rotl32 ((x), 25u) ^ rotl32 ((x), 14u) ^ shr32 ((x),  3u))//+
@@ -367,25 +367,28 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
               // printf(">   W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
               byteWasPlaced = true;
             }
+
+            /// TODO: how to fill padded message if it's mod(, 64)==0?
+            //  it depends on a selected standard (seems like)
             if (placeByteForwardMsg)
             {
-              // TODO: how to fill padded message if it's mod(, 64)==0?
-              W[0x0] = 0x10101010;//0x80000000;
-              W[0x1] = 0x10101010;// TODO: what to do with a standard??
-              W[0x2] = 0x10101010;
-              W[0x3] = 0x10101010;
-              W[0x4] = 0x10101010;
-              W[0x5] = 0x10101010;
-              W[0x6] = 0x10101010;
-              W[0x7] = 0x10101010;
-              W[0x8] = 0x10101010;
-              W[0x9] = 0x10101010;
-              W[0xA] = 0x10101010;
-              W[0xB] = 0x10101010;
-              W[0xC] = 0x10101010;
-              W[0xD] = 0x10101010;
-              // W[0xE] = 0x10101010;
-              // W[0xF] = 0x10101010;
+              // TODO: what to do with a standard??
+              W[0x0] = 0x80000000;//0x10101010;//
+              W[0x1] = 0x00000010;
+              W[0x2] = 0x00000010;
+              W[0x3] = 0x00000010;
+              W[0x4] = 0x00000010;
+              W[0x5] = 0x00000010;
+              W[0x6] = 0x00000010;
+              W[0x7] = 0x00000010;
+              W[0x8] = 0x00000010;
+              W[0x9] = 0x00000010;
+              W[0xA] = 0x00000010;
+              W[0xB] = 0x00000010;
+              W[0xC] = 0x00000010;
+              W[0xD] = 0x00000010;
+              W[0xE] = 0x00000010;
+              W[0xF] = 0x00000010;
             }
 
         }
@@ -423,14 +426,6 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
       "> [sha256:%d] H: p0=%08x p1=%08x p2=%08x p3=%08x p4=%08x p5=%08x p6=%08x p7=%08x\n",
       idx, State[0],State[1],State[2],State[3],State[4],State[5],State[6],State[7]
     );
-    // p[0]=SWAP(State[0]);
-    // p[1]=SWAP(State[1]);
-    // p[2]=SWAP(State[2]);
-    // p[3]=SWAP(State[3]);
-    // p[4]=SWAP(State[4]);
-    // p[5]=SWAP(State[5]);
-    // p[6]=SWAP(State[6]);
-    // p[7]=SWAP(State[7]);
     p[0]=State[0];
     p[1]=State[1];
     p[2]=State[2];

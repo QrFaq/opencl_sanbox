@@ -44,61 +44,58 @@ int main(int argc, char* argv[])
     {
         h_in_buf[ind_hash].length = MAX_STR_LENGTH_BYTES;// N bytes
         LogInfo("> Input string (hash %i), len=%d:\n`", ind_hash, h_in_buf[ind_hash].length);
-        // for (size_t ind = 0; ind < MAX_STR_LENGTH_BYTES; ind+=4)
-        // {   
-        //     h_in_buf[ind_hash].buffer[ind/4] = 0;
-        //     //write 'aaaa'
-        //     if (ind + 0 < MAX_STR_LENGTH_BYTES)
-        //         h_in_buf[ind_hash].buffer[ind/4] |= 0x61000000;
-        //     if (ind + 1 < MAX_STR_LENGTH_BYTES)
-        //         h_in_buf[ind_hash].buffer[ind/4] |= 0x00620000;
-        //     if (ind + 2 < MAX_STR_LENGTH_BYTES)
-        //         h_in_buf[ind_hash].buffer[ind/4] |= 0x00006300;
-        //     if (ind + 3 < MAX_STR_LENGTH_BYTES)
-        //         h_in_buf[ind_hash].buffer[ind/4] |= 0x00000064;
-        //     //h_out_buf[n_hashes].buffer[ind] = 0xffffffff;
-        //     LogInfo(
-        //         "%d, %c, %8x \n",
-        //         ind/4,
-        //         h_in_buf[ind_hash].buffer[ind/4],
-        //         h_in_buf[ind_hash].buffer[ind/4]
-        //     );
-        // }
+        for (size_t ind = 0; ind < MAX_STR_LENGTH_BYTES; ind+=4)
+        {   
+            h_in_buf[ind_hash].buffer[ind/4] = 0;
+            //write 'aaaa'
+            if (ind + 0 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x61000000;
+            if (ind + 1 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00620000;
+            if (ind + 2 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00006300;
+            if (ind + 3 < MAX_STR_LENGTH_BYTES)
+                h_in_buf[ind_hash].buffer[ind/4] |= 0x00000064;
+            //h_out_buf[n_hashes].buffer[ind] = 0xffffffff;
+            LogInfo(
+                "%d, %c, %8x \n",
+                ind/4,
+                h_in_buf[ind_hash].buffer[ind/4],
+                h_in_buf[ind_hash].buffer[ind/4]
+            );
+        }
         LogInfo("`\n");
-        h_in_buf[ind_hash].buffer[0]=0x00f24d69;
-        h_in_buf[ind_hash].buffer[1]=0x6e65fc61;
-        h_in_buf[ind_hash].buffer[2]=0xc71d0e34;
-        h_in_buf[ind_hash].buffer[3]=0x517c7bdf;
-        h_in_buf[ind_hash].buffer[4]=0x5187c55a;
-        h_in_buf[ind_hash].buffer[5]=0xf4f8b61f;
-        h_in_buf[ind_hash].buffer[6]=0xdc321588;
-        h_in_buf[ind_hash].buffer[7]=0xc7ab768d;
-        h_in_buf[ind_hash].buffer[8]=0xee24b006;
-        h_in_buf[ind_hash].buffer[9]=0xdf291064;
-        h_in_buf[ind_hash].buffer[10]=0x58d7cf00;
-        h_in_buf[ind_hash].buffer[11]=0x01020304;
-        h_in_buf[ind_hash].buffer[12]=0x05060708;
-        h_in_buf[ind_hash].buffer[13]=0x090a0b0c;
-        h_in_buf[ind_hash].buffer[14]=0x0d0e0f10;
-        h_in_buf[ind_hash].buffer[15]=0x11121314;
-        h_in_buf[ind_hash].buffer[16]=0x15161718;
-        h_in_buf[ind_hash].buffer[17]=0x191a1b20;
-        h_in_buf[ind_hash].buffer[18]=0x11e3998e;
-        h_in_buf[ind_hash].buffer[19]=0xadce88ad;
-        h_in_buf[ind_hash].buffer[20]=0x28e847f8;
-        h_in_buf[ind_hash].buffer[21]=0x057522cb;
-        h_in_buf[ind_hash].buffer[22]=0xcc7c4300;
-        h_in_buf[ind_hash].buffer[23]=0x01020304;
-        h_in_buf[ind_hash].buffer[24]=0x05060708;
-        h_in_buf[ind_hash].buffer[25]=0x090a0b0c;
-        h_in_buf[ind_hash].buffer[26]=0x0d0e0f10;
-        h_in_buf[ind_hash].buffer[27]=0x11121314;
-        h_in_buf[ind_hash].buffer[28]=0x15161718;
-        h_in_buf[ind_hash].buffer[29]=0x191a1b20;
-        h_in_buf[ind_hash].buffer[30]=0x11e39900;
-
-
-
+        // h_in_buf[ind_hash].buffer[0]=0x00f24d69;
+        // h_in_buf[ind_hash].buffer[1]=0x6e65fc61;
+        // h_in_buf[ind_hash].buffer[2]=0xc71d0e34;
+        // h_in_buf[ind_hash].buffer[3]=0x517c7bdf;
+        // h_in_buf[ind_hash].buffer[4]=0x5187c55a;
+        // h_in_buf[ind_hash].buffer[5]=0xf4f8b61f;
+        // h_in_buf[ind_hash].buffer[6]=0xdc321588;
+        // h_in_buf[ind_hash].buffer[7]=0xc7ab768d;
+        // h_in_buf[ind_hash].buffer[8]=0xee24b006;
+        // h_in_buf[ind_hash].buffer[9]=0xdf291064;
+        // h_in_buf[ind_hash].buffer[10]=0x58d7cf00;
+        // h_in_buf[ind_hash].buffer[11]=0x01020304;
+        // h_in_buf[ind_hash].buffer[12]=0x05060708;
+        // h_in_buf[ind_hash].buffer[13]=0x090a0b0c;
+        // h_in_buf[ind_hash].buffer[14]=0x0d0e0f10;
+        // h_in_buf[ind_hash].buffer[15]=0x11121314;
+        // h_in_buf[ind_hash].buffer[16]=0x15161718;
+        // h_in_buf[ind_hash].buffer[17]=0x191a1b20;
+        // h_in_buf[ind_hash].buffer[18]=0x11e3998e;
+        // h_in_buf[ind_hash].buffer[19]=0xadce88ad;
+        // h_in_buf[ind_hash].buffer[20]=0x28e847f8;
+        // h_in_buf[ind_hash].buffer[21]=0x057522cb;
+        // h_in_buf[ind_hash].buffer[22]=0xcc7c4300;
+        // h_in_buf[ind_hash].buffer[23]=0x01020304;
+        // h_in_buf[ind_hash].buffer[24]=0x05060708;
+        // h_in_buf[ind_hash].buffer[25]=0x090a0b0c;
+        // h_in_buf[ind_hash].buffer[26]=0x0d0e0f10;
+        // h_in_buf[ind_hash].buffer[27]=0x11121314;
+        // h_in_buf[ind_hash].buffer[28]=0x15161718;
+        // h_in_buf[ind_hash].buffer[29]=0x191a1b20;
+        // h_in_buf[ind_hash].buffer[30]=0x11e39900
     }
     //00f24d696e65fc61c71d0e34517c7bdf5187c55af4f8b61fdc321588c7ab768dee24b006df29106458d7cf000102030405060708090a0b0c0d0e0f101112131415161718191a1b2011e3998eadce88ad28e847f8057522cbcc7c43000102030405060708090a0b0c0d0e0f101112131415161718191a1b2011e399
 
