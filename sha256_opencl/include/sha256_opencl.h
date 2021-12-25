@@ -1,6 +1,6 @@
 #include "3rd_parties/utils.h"
 
-#define MAX_STR_LENGTH_BYTES 48             // max size of the input string
+#define MAX_STR_LENGTH_BYTES 56             // max size of the input string
 
 #if MAX_STR_LENGTH_BYTES%4 > 0
     #define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4 + 1  // max number of unsigned int 

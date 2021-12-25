@@ -1,4 +1,4 @@
-#define MAX_STR_LENGTH_BYTES 48             // max size of the input string
+#define MAX_STR_LENGTH_BYTES 56             // max size of the input string
 
 #if MAX_STR_LENGTH_BYTES%4 > 0
     #define N_BUFFER_sz MAX_STR_LENGTH_BYTES/4 + 1  // max number of unsigned int 
@@ -334,17 +334,20 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
         // add 1
         if (nleft_32Words < 1 && !byteWasPlaced)// && mod(pass_len, 64)!=0
         {
-            uint bit_shift = 32 - (pass_len - pass_len/4 * 4) * 8;
+            uint bit_shift = (pass_len - pass_len/4 * 4) * 8;//32 - (pass_len - pass_len/4 * 4) * 8;
             // printf("> bit shift=%d [B]\n", bit_shift/8 );
             ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
-            uint padding = 0x80 << bit_shift;//?
+            uint padding = 0x80000000 >> bit_shift;//?
             // uint padding = 0x200 >> bit_shift;//?
 
-            printf("> [sha256:%d] bit_shift=%d, padding=%d\n", idx, bit_shift, padding);
-            // uint v = mod( (num32Words-1), 16);// PRoblem if 48
-            uint v = mod( num32Words, 16);
+            printf("> [sha256:%d] bit_shift=%d, padding=%d, %i\n", idx, bit_shift, padding, (pass_len - pass_len/4 * 4) * 8 );
+            uint v = mod( (num32Words-1), 16);// PRoblem if 48
+            if (mod(pass_len, 4)==0)
+              v++;
+
+            // uint v = mod( num32Words, 16);
             printf("> [sha256:%d] bit shift=%08x in v=%i, num32Words=%d\n", idx, padding, v, num32Words);
-            printf("> [sha256:%d] bit swap =%8x in v=%i\n", idx, SWAP(padding), v );
+            // printf("> [sha256:%d] bit swap =%8x in v=%i\n", idx, SWAP(padding), v );
 
             // printf("> Before pad:\n");
             // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
@@ -352,7 +355,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
 
             // W[v/4] |= SWAP(padding);
             printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
-            W[v] |= SWAP(padding);//padding;//
+            W[v] |= padding;//SWAP(padding);//padding;//
 
 
             // printf("> After pad:\n");
