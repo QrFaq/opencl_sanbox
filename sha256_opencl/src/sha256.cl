@@ -336,7 +336,7 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
             // printf("> bit shift=%d [B]\n", bit_shift/8 );
             ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
             unsigned int padding = 0x80 << bit_shift;//?
-            int v = mod(pass_len, 64);
+            int v = mod(num32Words, 16);
             printf("> [sha256:%d] bit shift=%08x in v=%i\n", idx, padding, v );
             printf("> [sha256:%d] bit swap =%08x in v=%i\n", idx, SWAP(padding), v );
 
@@ -345,8 +345,8 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
             // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
 
             // W[v/4] |= SWAP(padding);
-            printf("> [sha256:%d] W[12] =%08x\n", idx, W[12]);
-            W[12] |= SWAP(padding);
+            printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
+            W[v] |= SWAP(padding);
 
 
             // printf("> After pad:\n");
