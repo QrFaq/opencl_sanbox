@@ -249,14 +249,14 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     // (N msg-bytes + 1 + 64-bit Msg length)/64
     // +1: cause 1bit shall be placed, but the data
     //      discretization step is 1-byte (1-hex)
-    int numMsgBlocks_DEBUG = (pass_len + 8)/64 + 1;
+    //int numMsgBlocks_DEBUG = (pass_len + 8)/64 + 1;
+    // int left3dWords_totalBlocks = numMsgBlocks_DEBUG * 16;
 
     // 56 B, cause 56 B = 55 B (Msg) + 1 B (1-splitter)
     // 52-55 B (msg) + 1 B (1-splitter)
     // if (mod(pass_len, 56) < 9) 
-    //   numMsgBlocks_DEBUG++;// number of full 32-bit M-words
 
-    int left3dWords_totalBlocks = numMsgBlocks_DEBUG * 16;
+    int left3dWords_totalBlocks = /*numMsgBlocks_DEBUG*/((pass_len + 8)/64 + 1) * 16;
 
 
     // int num32WordsTotal = numMsgBlocks * 16;
