@@ -346,12 +346,12 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
             {
               placeByteForwardMsg=true;
             } else {
-              uint bit_shift = (pass_len - pass_len_div_4 * 4) * 8;//32 - (pass_len - pass_len/4 * 4) * 8;
-              // printf("> bit shift=%d [B]\n", bit_shift/8 );
-              ////// unsigned int padding = 0x80 << (((pass_len+4) - ((pass_len + 4)/4 * 4)) * 8);//?
-              uint padding = 0x80000000 >> bit_shift;//?
-              // uint padding = 0x200 >> bit_shift;//?
-
+              // uint bit_shift = (pass_len - pass_len_div_4 * 4) * 8;//32 - (pass_len - pass_len/4 * 4) * 8;
+              // uint padding = 0x80000000 >> bit_shift;
+              // W[v] |= padding;//SWAP(padding);//padding;//
+              // W[v] |= (/*padding*/0x80000000 >> ((pass_len - pass_len_div_4 * 4) * 8)/*bit_shift*/);
+              W[v] |= (/*padding*/0x80000000 >> (pass_len_in_bits - pass_len_div_4 * 32)/*bit_shift*/);
+              
               // printf("> [sha256:%d] bit_shift=%d, padding=%d, %i\n", idx, bit_shift, padding, (pass_len - pass_len/4 * 4) * 8 );
               // uint v = mod( num32Words, 16);
               // printf("> [sha256:%d] bit shift=%08x in v=%i, num32Words=%d\n", idx, padding, v, num32Words);
@@ -360,10 +360,6 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
               // printf("> Before pad:\n");
               // printf("    W[0]:%8x W[1]:%8x W[2]:%8x W[3]:%8x W[4]:%8x W[5]:%8x W[6]:%8x W[7]:%8x\n", W[0x0], W[0x1], W[0x2], W[0x3], W[0x4], W[0x5], W[0x6], W[0x7]);
               // printf("    W[8]:%8x W[9]:%8x W[10]:%8x W[11]:%8x W[12]:%8x W[13]:%8x W[14]:%8x W[15]:%8x\n", W[0x8], W[0x9], W[0xA], W[0xB], W[0xC], W[0xD], W[0xE], W[0xF]);
-
-              // W[v/4] |= SWAP(padding);
-              // printf("> [sha256:%d] W[%i] =%08x\n", idx, v, W[v]);
-              W[v] |= padding;//SWAP(padding);//padding;//
 
 
               // printf("> After pad:\n");
