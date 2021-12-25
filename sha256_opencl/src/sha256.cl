@@ -293,7 +293,6 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
     //   "> [sha256:%d] Hstart: p0=%08x p1=%08x p2=%08x p3=%08x p4=%08x p5=%08x p6=%08x p7=%08x\n",
     //   idx, State[0],State[1],State[2],State[3],State[4],State[5],State[6],State[7]
     // );
-    uint debug_loop_counter = 0;
     bool byteWasPlaced = false;
     bool placeByteForwardMsg = false;
     while (nleft_32Words > 0 || left3dWords_totalBlocks > 0)//|| !byteWasPlaced)// || pad32Words > 0)
@@ -416,7 +415,6 @@ static void sha256(__global const unsigned int* pass, unsigned int pass_len, uns
 
         // fill t=16..63 as M<t, i>
         sha256_process2(W, State);//state == h
-        debug_loop_counter++;
 
         // printf(
         //   "> [sha256:%d:After] H: State0=%08x State1=%08x State2=%08x State3=%08x State4=%08x State5=%08x State6=%08x State7=%08x\n",
